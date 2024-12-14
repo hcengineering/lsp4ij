@@ -21,9 +21,9 @@
     <orderEntry type="library" name="gson" level="project" />
     <orderEntry type="library" name="Guava" level="project" />
     <orderEntry type="library" name="commons-io" level="project" />
-    <orderEntry type="module-library" scope="PROVIDED">
+    <orderEntry type="module-library">
       <library name="vladsch.flexmark" type="repository">
-        <properties include-transitive-deps="false" maven-id="com.vladsch.flexmark:flexmark:0.64.8">
+        <properties include-transitive-deps="true" maven-id="com.vladsch.flexmark:flexmark-all:0.64.8">
           <verification>
             <artifact url="file://$MAVEN_REPOSITORY$/com/vladsch/flexmark/flexmark/0.64.8/flexmark-0.64.8.jar">
               <sha256sum>3133878d108f0e1964d7d427f379a7433e1b71a45f9f3c1fab7ed0ac0301d3b0</sha256sum>
@@ -113,7 +113,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library" scope="PROVIDED">
+    <orderEntry type="module-library">
       <library name="eclipse.lsp4j" type="repository">
         <properties maven-id="org.eclipse.lsp4j:org.eclipse.lsp4j:0.21.1">
           <verification>
