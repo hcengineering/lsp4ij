@@ -92,7 +92,7 @@ public class CodeVisionEditorFeature implements EditorFeature {
         Runnable runnable = () -> {
             // Get the IntelliJ code vision host and fire an event to refresh only LSP code vision
             var codeVisionHost = CodeVisionInitializer.Companion.getInstance(file.getProject()).getCodeVisionHost();
-            codeVisionHost.getInvalidateProviderSignal().fire(new CodeVisionHost.LensInvalidateSignal(editor, DummyCodeVisionProviderFactory.LSP_CODE_VISION_PROVIDER_IDS));
+            //codeVisionHost.getInvalidateProviderSignal().fire(new CodeVisionHost.LensInvalidateSignal(editor, DummyCodeVisionProviderFactory.LSP_CODE_VISION_PROVIDER_IDS));
         };
         runnableList.add(runnable);
     }
