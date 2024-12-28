@@ -13,7 +13,6 @@
  *******************************************************************************/
 package com.redhat.devtools.lsp4ij.usages;
 
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -26,6 +25,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.PsiReferenceUtil;
 import com.intellij.psi.search.PsiSearchHelper;
+import com.intellij.psi.search.SearchScope;
 import com.intellij.psi.search.UsageSearchContext;
 import com.intellij.util.Processor;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
@@ -48,12 +48,27 @@ public final class LSPExternalReferencesFinder {
     /**
      * Processes all external references for the LSP4IJ element at the offset in the specified file.
      *
-     * @param file      the file for which the element at the specified offset should be processed for external references
-     * @param offset    the offset of the element in the file
-     * @param processor the external reference processor
+     * @param file        the file for which the element at the specified offset should be processed for external references
+     * @param offset      the offset of the element in the file
+     * @param processor   the external reference processor
      */
     public static void processExternalReferences(@NotNull PsiFile file,
                                                  int offset,
+                                                 @NotNull Processor<PsiReference> processor) {
+        processExternalReferences(file, offset, file.getUseScope(), processor);
+    }
+
+    /**
+     * Processes all external references for the LSP4IJ element at the offset in the specified file.
+     *
+     * @param file        the file for which the element at the specified offset should be processed for external references
+     * @param offset      the offset of the element in the file
+     * @param searchScope the search scope
+     * @param processor   the external reference processor
+     */
+    public static void processExternalReferences(@NotNull PsiFile file,
+                                                 int offset,
+                                                 @NotNull SearchScope searchScope,
                                                  @NotNull Processor<PsiReference> processor) {
         VirtualFile virtualFile = file.getVirtualFile();
         if (virtualFile != null) {
@@ -67,6 +82,7 @@ public final class LSPExternalReferencesFinder {
                             file,
                             wordText,
                             wordTextRange,
+                            searchScope,
                             ProgressManager.getInstance().getProgressIndicator(),
                             processor
                     );
@@ -78,6 +94,7 @@ public final class LSPExternalReferencesFinder {
     private static void processExternalReferences(@NotNull PsiFile file,
                                                   @NotNull String wordText,
                                                   @NotNull TextRange wordTextRange,
+                                                  @NotNull SearchScope searchScope,
                                                   @Nullable ProgressIndicator progressIndicator,
                                                   @NotNull Processor<PsiReference> processor) {
         VirtualFile virtualFile = file.getVirtualFile();
@@ -132,7 +149,7 @@ public final class LSPExternalReferencesFinder {
                     }
                     return true;
                 },
-                ReadAction.compute(file::getUseScope),
+                searchScope,
                 wordText,
                 UsageSearchContext.ANY,
                 caseSensitive
