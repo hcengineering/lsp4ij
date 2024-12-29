@@ -136,5 +136,23 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="nibor.autolink" type="repository">
+        <properties maven-id="org.nibor.autolink:autolink:0.11.0">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/nibor/autolink/autolink/0.11.0/autolink-0.11.0.jar">
+              <sha256sum>39c6588948ab31b98ab1fea4a6abab37243f387cb48cb50ae599410effb70038</sha256sum>
+            </artifact>
+          </verification>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/org/nibor/autolink/autolink/0.11.0/autolink-0.11.0.jar!/" />
+        </CLASSES>
+        <JAVADOC>
+          <root url="jar://$MAVEN_REPOSITORY$/org/nibor/autolink/autolink/0.11.0/autolink-0.11.0-javadoc.jar!/" />
+        </JAVADOC>
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>
