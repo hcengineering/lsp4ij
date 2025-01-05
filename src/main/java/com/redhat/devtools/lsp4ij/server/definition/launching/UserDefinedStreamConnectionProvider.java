@@ -37,8 +37,9 @@ public class UserDefinedStreamConnectionProvider extends OSProcessStreamConnecti
                                                boolean includeSystemEnvironmentVariables,
                                                @NotNull UserDefinedLanguageServerDefinition serverDefinition,
                                                @NotNull Project project) {
-        super(createCommandLine(commandLine, userEnvironmentVariables, includeSystemEnvironmentVariables));
-        this.serverDefinition = serverDefinition;
+      super(createCommandLine(commandLine, userEnvironmentVariables, includeSystemEnvironmentVariables).withWorkingDirectory(
+        project.getBaseDir().toNioPath()));
+      this.serverDefinition = serverDefinition;
     }
 
     @NotNull
