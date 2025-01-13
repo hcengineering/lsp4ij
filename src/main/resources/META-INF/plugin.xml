@@ -430,7 +430,9 @@ L
                 implementation="com.redhat.devtools.lsp4ij.features.refactoring.LSPRenamePsiElementProcessor"
                 order="last"/>
 
-        <!-- Code Action support-->
+      <problemFileHighlightFilter implementation="com.redhat.devtools.lsp4ij.features.diagnostics.LSPProblemFileHighlightFilter"/>
+
+      <!-- Code Action support-->
         <intentionAction>
             <bundleName>messages.LanguageServerBundle</bundleName>
             <className>com.redhat.devtools.lsp4ij.features.codeAction.intention.LSPIntentionAction0</className>

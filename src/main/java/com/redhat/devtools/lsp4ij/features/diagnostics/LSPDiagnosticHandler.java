@@ -19,13 +19,16 @@ import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.problems.WolfTheProblemSolver;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.concurrency.AppExecutorUtil;
+import com.intellij.util.containers.ContainerUtil;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.lsp4ij.LSPVirtualFileData;
 import com.redhat.devtools.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.lsp4ij.client.CoalesceByKey;
 import com.redhat.devtools.lsp4ij.client.features.FileUriSupport;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.jetbrains.annotations.NotNull;
 
@@ -95,6 +98,12 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
             // {@link LSPDiagnosticAnnotator}.
             // which translates LSP Diagnostics into Intellij Annotation
             DaemonCodeAnalyzer.getInstance(project).restart(psiFile);
+        }
+        WolfTheProblemSolver wolf = WolfTheProblemSolver.getInstance(project);
+        if (ContainerUtil.exists(params.getDiagnostics(), diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)) {
+          wolf.reportProblemsFromExternalSource(file, this);
+        } else {
+          wolf.clearProblemsFromExternalSource(file, this);
         }
     }
 }
