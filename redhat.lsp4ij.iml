@@ -10,11 +10,15 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="intellij.platform.lang" />
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
+    <orderEntry type="module" module-name="intellij.platform.ide.impl" />
     <orderEntry type="module" module-name="intellij.platform.ide.core.impl" />
     <orderEntry type="module" module-name="intellij.platform.ide.util.io" />
+    <orderEntry type="module" module-name="intellij.platform.editor.ex" />
     <orderEntry type="module" module-name="intellij.platform.core.ui" />
     <orderEntry type="module" module-name="intellij.platform.execution.impl" />
+    <orderEntry type="module" module-name="intellij.platform.util.ui" />
     <orderEntry type="module" module-name="intellij.textmate" />
+    <orderEntry type="module" module-name="intellij.textmate.core" />
     <orderEntry type="module" module-name="intellij.json" />
     <orderEntry type="library" name="jsoup" level="project" />
     <orderEntry type="library" name="slf4j-api" level="project" />
