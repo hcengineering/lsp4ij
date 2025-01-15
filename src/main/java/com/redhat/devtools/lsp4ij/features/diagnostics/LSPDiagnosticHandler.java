@@ -101,9 +101,9 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
         }
         WolfTheProblemSolver wolf = WolfTheProblemSolver.getInstance(project);
         if (ContainerUtil.exists(params.getDiagnostics(), diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)) {
-          wolf.reportProblemsFromExternalSource(file, this);
+          wolf.reportProblemsFromExternalSource(file, languageServerWrapper);
         } else {
-          wolf.clearProblemsFromExternalSource(file, this);
+          wolf.clearProblemsFromExternalSource(file, languageServerWrapper);
         }
     }
 }
