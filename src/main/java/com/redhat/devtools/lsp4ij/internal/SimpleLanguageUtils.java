@@ -18,7 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Simple supported languages by LSP ('TEXT' and 'textmate').
+ * Simple supported languages by LSP ('TEXT', 'textmate' and 'TreeSitter).
  */
 public class SimpleLanguageUtils {
 
@@ -33,6 +33,10 @@ public class SimpleLanguageUtils {
         if (textMateLanguage != null) {
             languages.add(textMateLanguage);
         }
+        Language treeSitterLanguage = Language.findLanguageByID("TreeSitter");
+        if (treeSitterLanguage != null) {
+            languages.add(treeSitterLanguage);
+        }
         supportedSimpleLanguages = Collections.unmodifiableSet(languages);
     }
 
@@ -41,19 +45,19 @@ public class SimpleLanguageUtils {
     }
 
     /**
-     * Returns the supported simple languages (TEXT, textmate) supported by default by LSP4IJ.
+     * Returns the supported simple languages (TEXT, textmate, TreeSitter) supported by default by LSP4IJ.
      *
-     * @return the supported simple languages (TEXT, textmate) supported by default by LSP4IJ.
+     * @return the supported simple languages (TEXT, textmate, TreeSitter) supported by default by LSP4IJ.
      */
     public static Set<Language> getSupportedSimpleLanguages() {
         return supportedSimpleLanguages;
     }
 
     /**
-     * Returns true if the given <code>language</code> is a supported language (TEXT, textmate) and false otherwise.
+     * Returns true if the given <code>language</code> is a supported language (TEXT, textmate, TreeSitter) and false otherwise.
      *
      * @param language the language.
-     * @return true if the given <code>language</code> is a supported language (TEXT, textmate) and false otherwise.
+     * @return true if the given <code>language</code> is a supported language (TEXT, textmate, TreeSitter) and false otherwise.
      */
     public static boolean isSupported(Language language) {
         return supportedSimpleLanguages.contains(language);
