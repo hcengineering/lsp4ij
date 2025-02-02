@@ -1,5 +1,19 @@
 {
   "caseSensitive": true,
+  "completion": {
+    "useContextAwareSorting": true,
+    "useTemplateForInvocationOnlySnippet": false
+  },
+  "format": {
+    "onTypeFormatting": {
+      "clientSide": {
+        "formatOnCloseBrace": true,
+        "formatOnStatementTerminator": true,
+        "formatOnStatementTerminatorCharacters": ";",
+        "formatOnCompletionTrigger": true
+      }
+    }
+  },
   "workspaceSymbol": {
     "supportsGotoClass": true
   }

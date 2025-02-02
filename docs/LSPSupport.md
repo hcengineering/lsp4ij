@@ -1,6 +1,7 @@
 # LSP support
 
-The current implementation of `LSP4IJ` does not yet fully adhere to the LSP (Language Server Protocol) specification. This section provides an overview of the supported LSP features for IntelliJ:
+The current implementation of `LSP4IJ` does not yet fully adhere to the [LSP (Language Server Protocol) specification](https://microsoft.github.io/language-server-protocol/). 
+This section provides an overview of the supported LSP features for IntelliJ:
 
 ## Base support
 
@@ -66,7 +67,7 @@ Current state of [Language Features]( https://microsoft.github.io/language-serve
  * ❌ [textDocument/pullDiagnostics](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_pullDiagnostics).
  * ✅ [textDocument/formatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_formatting) (see [implementation details](#formatting))
  * ✅ [textDocument/rangeFormatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rangeFormatting) (see [implementation details](#formatting)).
- * ❌ [textDocument/onTypeFormatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_onTypeFormatting).
+ * ✅ [textDocument/onTypeFormatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_onTypeFormatting) (see [implementation details](#on-type-formatting)).
  * ✅ [textDocument/prepareRename](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_prepareRename).
  * ✅ [textDocument/rename](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rename) (see [implementation details](#rename)).
  * ❌ [textDocument/linkedEditingRange](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_linkedEditingRange).
@@ -370,17 +371,23 @@ Here is an example with the [TypeScript Language Server](./user-defined-ls/types
 
 ![textDocument/foldingRange](./images/lsp-support/textDocument_foldingRange.gif)
 
-Additionally LSP4IJ registers the an implementation of the `codeBlockProvider` extension point with
-[LSPCodeBlockProvider](https://github.com/redhat-developer/lsp4ij/blob/main/src/main/java/com/redhat/devtools/lsp4ij/features/foldingRange/LSPCodeBlockProvider.java) for `TEXT` and `textmate` languages to provide block brace matching and easy navigation to
-the beginning/end of the containing block.
+#### Automatic code folding
 
-As with `lang.foldingBuilder`, if you use another language, you will have to declare `codeBlockProvider` with your language. 
+LSP4IJ's folding range support also includes the ability to designate certain folding ranges as _collapsed by default_
+based on a combination of the IDE's **Code Folding** settings:
 
-Below is an example with the [TypeScript Language Server](./user-defined-ls/typescript-language-server.md) showing code
-block functionality. The IDE's Presentation Assistant shows the default keyboard shortcuts for each supported operating
-system to trigger these actions.
+![Code Folding settings](./images/lsp-support/codeFoldingSettings.png)
 
-![codeBlockProvider](./images/lsp-support/codeBlockProvider.gif)
+and how the folding ranges are categorized by the language server via the `kind` attribute. By default, the following
+folding ranges are folded by default:
+
+* Those with `kind=imports` when **Imports** are configured to be folded by default in the IDE.
+* Those with `kind=comment` found on the first line of a file when **File header** is configured to be folded by default in the IDE. 
+
+Here is an example of collapse by default behavior with the [Java Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls)
+showing automatic folding of both the file header comment and imports when the file is opened:
+
+![textDocument/foldingRange_collapseByDefault](./images/lsp-support/textDocument_foldingRange_collapseByDefault.gif)
 
 ### Selection range
 
@@ -390,6 +397,22 @@ the `extendWordSelectionHandler` extension point and used via the IDE's **Extend
 Here is an example with the [TypeScript Language Server](https://github.com/typescript-language-server/typescript-language-server) showing **Extend/Shrink Selection** using `textDocument/selectionRange`:
 
 ![textDocument/selectionRange](./images/lsp-support/textDocument_selectionRange.gif)
+
+### Code block provider
+
+LSP4IJ registers the an implementation of the `codeBlockProvider` extension point with
+[LSPCodeBlockProvider](https://github.com/redhat-developer/lsp4ij/blob/main/src/main/java/com/redhat/devtools/lsp4ij/features/foldingRange/LSPCodeBlockProvider.java) for `TEXT` and `textmate` languages to provide block brace matching and easy navigation to
+the beginning/end of the containing block. For maximum flexibility in the absence of a true AST in the LSP client, code
+blocks are derived from `textDocument/selectionRange` first and, failing that, from `textDocument/foldingRange`.
+
+As with other language-specific EP implementations, if you use another language, you will have to declare
+`codeBlockProvider` with your language.
+
+Below is an example with the [TypeScript Language Server](./user-defined-ls/typescript-language-server.md) showing code
+block functionality. The IDE's Presentation Assistant shows the default keyboard shortcuts for each supported operating
+system to trigger these actions.
+
+![codeBlockProvider](./images/lsp-support/codeBlockProvider.gif)
 
 ### Publish Diagnostics
 
@@ -426,6 +449,86 @@ Here is an example with the [TypeScript Language Server](./user-defined-ls/types
 [textDocument/formatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentColor) / [textDocument/rangeFormatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_rangeFormatting) are implemented with 
 [LSPFormattingOnlyService](https://github.com/redhat-developer/lsp4ij/blob/main/src/main/java/com/redhat/devtools/lsp4ij/features/formatting/LSPFormattingOnlyService.java) /
 [LSPFormattingAndRangeBothService](https://github.com/redhat-developer/lsp4ij/blob/main/src/main/java/com/redhat/devtools/lsp4ij/features/formatting/LSPFormattingAndRangeBothService.java) with the `formattingService` extension point.
+
+### On-Type Formatting
+
+#### Server-side on-type formatting
+
+[textDocument/onTypeFormatting](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_onTypeFormatting) is implemented with 
+[LSPServerSideOnTypeFormattingTypedHandler](https://github.com/redhat-developer/lsp4ij/blob/main/src/main/java/com/redhat/devtools/lsp4ij/features/formatting/LSPServerSideOnTypeFormattingTypedHandler.java) (`typedHandler`extension point) and
+[LSPServerSideOnTypeFormattingEnterHandler](https://github.com/redhat-developer/lsp4ij/blob/main/src/main/java/com/redhat/devtools/lsp4ij/features/formatting/LSPServerSideOnTypeFormattingEnterHandler.java) (`enterHandlerDelegate` extension point).
+
+Here is an example with the [Java Language Server](https://github.com/eclipse-jdtls/eclipse.jdt.ls) showing automatic formatting of a code block when the close brace for a surrounding conditional statement is typed:
+
+![textDocument/onTypeFormatting](./images/lsp-support/textDocument_onTypeFormatting.gif)
+
+If desired &mdash; for example, for those who want to control when formatting is performed &mdash; server-side/LSP-based
+on-type formatting can be disabled via client configuration as follows:
+
+```json
+{
+  "format": {
+    "onTypeFormatting": {
+      "serverSide": {
+        "enabled": false
+      }
+    }
+  }
+}
+```
+
+#### Client-side on-type formatting
+
+Not all language servers support server-side on-type formatting, and those that do may be limited in the characters
+that trigger the feature. To provide an improved editor experience for users of such language servers, LSP4IJ also
+includes support for _client-side on-type formatting_. Client-side on-type formatting can be enabled via client
+configuration with the following settings:
+
+* `format.onTypeFormatting.clientSide.formatOnCloseBrace` - When set to `true`, formatting is automatically applied when a close brace character is typed. Defaults to `false`.
+* `format.onTypeFormatting.clientSide.formatOnCloseBraceCharacters` - Specifies the exact characters that should treated as a close brace character for purposes of client-side on-type formatting. Defaults to the close brace characters for the language, typically `}`, `]`, and `)`.
+* `format.onTypeFormatting.clientSide.formatOnCloseBraceScope` - Specifies the scope that should be formatted when a close brace is typed. Valid values are `CODE_BLOCK` and `FILE`. Defaults to `CODE_BLOCK`.
+* `format.onTypeFormatting.clientSide.formatOnStatementTerminator` - When set to `true`, formatting is automatically applied when a statement terminator character is typed. Defaults to `false`.
+* `format.onTypeFormatting.clientSide.formatOnStatementTerminatorCharacters` - Specifies the exact characters that should treated as a statement terminator character for purposes of client-side on-type formatting. Defaults to empty and must be specified if `formatOnStatementTerminator` is enabled.
+* `format.onTypeFormatting.clientSide.formatOnStatementTerminatorScope` - Specifies the scope that should be formatted when a statement terminator is typed. Valid values are `STATEMENT`, `CODE_BLOCK` and `FILE`. Defaults to `STATEMENT`. The other values are most useful for language servers that do not support range formatting or yield incorrect results for range formatting.
+* `format.onTypeFormatting.clientSide.formatOnCompletionTrigger` - When set to `true`, formatting is automatically applied when a completion trigger character is typed. Defaults to `false`.
+* `format.onTypeFormatting.clientSide.formatOnCompletionTriggerCharacters` - Specifies the exact characters that should treated as a completion trigger character for purposes of client-side on-type formatting. Defaults to the completion trigger characters specified by the language server.
+* Note that there is no configurable scope for completion trigger-based formatting. Exactly the type completion trigger character is formatted. As above, support for this may vary by language server.
+
+Note that `FILE` scope is most useful for language servers that do not support range formatting properly or at all, but
+of course it results in reformatting of the entire file when a corresponding trigger character is typed. Usage of `FILE`
+scope is therefore left to the discretion of the end user.
+
+For example, the [TypeScript Language Server](./user-defined-ls/typescript-language-server.md) does not support server-side on-type formatting at all, but
+client-side on-type formatting can provide solid incremental formatting of JavaScript and TypeScript source files.
+The TypeScript language server configuration template therefore includes the following default client-side on-type
+formatting configuration:
+
+```json
+{
+  "format": {
+    "onTypeFormatting": {
+      "clientSide": {
+        "formatOnCloseBrace": true,
+        "formatOnStatementTerminator": true,
+        "formatOnStatementTerminatorCharacters": ";",
+        "formatOnCompletionTrigger": true
+      }
+    }
+  }
+}
+```
+
+Here is an example of client-side on-type formatting with that configuration showing automatic indentation of a
+statement continuation when the completion trigger character `.` is typed and automatic formatting of an entire code
+block when the closing brace character `}` is typed for a surrounding conditional statement:
+
+![Client-side on-type formatting](./images/lsp-support/clientSideOnTypeFormatting.gif)
+
+#### Server-side / client-side on-Type formatting relationship
+
+If server-side on-type formatting is supported by the language server and enabled _and_ client-side on-type formatting
+is enabled for specific trigger characters, _only client-side on-type formatting will be applied_ when those specific
+trigger characters are typed.
 
 ### Show Message
 

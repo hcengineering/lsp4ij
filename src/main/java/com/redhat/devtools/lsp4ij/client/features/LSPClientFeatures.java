@@ -19,6 +19,7 @@ import com.redhat.devtools.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.lsp4ij.ServerStatus;
 import com.redhat.devtools.lsp4ij.server.capabilities.TextDocumentServerCapabilityRegistry;
 import com.redhat.devtools.lsp4ij.server.definition.LanguageServerDefinition;
+import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentRegistrationOptions;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -64,12 +65,16 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
 
     private LSPFormattingFeature formattingFeature;
 
+    private LSPOnTypeFormattingFeature onTypeFormattingFeature;
+
     private LSPHoverFeature hoverFeature;
 
     private LSPImplementationFeature implementationFeature;
 
     private LSPInlayHintFeature inlayHintFeature;
 
+    private LSPProgressFeature progressFeature;
+    
     private LSPReferencesFeature referencesFeature;
 
     private LSPRenameFeature renameFeature;
@@ -94,6 +99,16 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
      */
     public boolean isEnabled(@NotNull VirtualFile file) {
         return true;
+    }
+
+    /**
+     * This method is invoked just before {@link LanguageServer#initialize(InitializeParams)}
+     * to enable customization of the language server's initialization parameters
+     * (e.g., {@link InitializeParams#getWorkDoneToken()}).
+     *
+     * @param initializeParams the initialize parameters.
+     */
+    public void initializeParams(@NotNull InitializeParams initializeParams) {
     }
 
     /**
@@ -650,6 +665,38 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
     }
 
     /**
+     * Returns the LSP on-type formatting feature.
+     *
+     * @return the LSP on-type formatting feature.
+     */
+    @NotNull
+    public final LSPOnTypeFormattingFeature getOnTypeFormattingFeature() {
+        if (onTypeFormattingFeature == null) {
+            initOnTypeFormattingFeature();
+        }
+        return onTypeFormattingFeature;
+    }
+
+    private synchronized void initOnTypeFormattingFeature() {
+        if (onTypeFormattingFeature != null) {
+            return;
+        }
+        setOnTypeFormattingFeature(new LSPOnTypeFormattingFeature());
+    }
+
+    /**
+     * Initialize the LSP formatting feature.
+     *
+     * @param onTypeFormattingFeature the LSP formatting feature.
+     * @return the LSP client features.
+     */
+    public final LSPClientFeatures setOnTypeFormattingFeature(@NotNull LSPOnTypeFormattingFeature onTypeFormattingFeature) {
+        onTypeFormattingFeature.setClientFeatures(this);
+        this.onTypeFormattingFeature = onTypeFormattingFeature;
+        return this;
+    }
+
+    /**
      * Returns the LSP hover feature.
      *
      * @return the LSP hover feature.
@@ -742,6 +789,38 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
     public final LSPClientFeatures setInlayHintFeature(@NotNull LSPInlayHintFeature inlayHintFeature) {
         inlayHintFeature.setClientFeatures(this);
         this.inlayHintFeature = inlayHintFeature;
+        return this;
+    }
+
+    /**
+     * Returns the LSP progress feature.
+     *
+     * @return the LSP progress feature.
+     */
+    @NotNull
+    public final LSPProgressFeature getProgressFeature() {
+        if (progressFeature == null) {
+            initProgressFeature();
+        }
+        return progressFeature;
+    }
+
+    private synchronized void initProgressFeature() {
+        if (progressFeature != null) {
+            return;
+        }
+        setProgressFeature(new LSPProgressFeature());
+    }
+
+    /**
+     * Initialize the LSP progress feature.
+     *
+     * @param progressFeature the LSP progress feature.
+     * @return the LSP client features.
+     */
+    public final LSPClientFeatures setProgressFeature(@NotNull LSPProgressFeature progressFeature) {
+        progressFeature.setClientFeatures(this);
+        this.progressFeature = progressFeature;
         return this;
     }
 
@@ -1247,4 +1326,5 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
             default -> null;
         };
     }
+
 }

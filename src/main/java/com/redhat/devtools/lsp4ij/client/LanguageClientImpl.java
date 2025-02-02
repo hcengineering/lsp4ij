@@ -170,8 +170,9 @@ public class LanguageClientImpl implements LanguageClient, Disposable {
     private void refreshInlayHintsForAllOpenedFiles() {
         for (var fileData : wrapper.getConnectedFiles()) {
             VirtualFile file = fileData.getFile();
-            EditorFeatureManager.getInstance(getProject())
-                    .refreshEditorFeature(file, EditorFeatureType.INLAY_HINT, true);
+            EditorFeatureManager efm = EditorFeatureManager.getInstance(getProject());
+            efm.refreshEditorFeature(file, EditorFeatureType.INLAY_HINT, true);
+            efm.refreshEditorFeature(file, EditorFeatureType.DECLARATIVE_INLAY_HINT, true);
         }
     }
 
@@ -248,14 +249,13 @@ public class LanguageClientImpl implements LanguageClient, Disposable {
             if (section == null) {
                 return config;
             }
-            String[] sections = section.split("[.]");
-            return findSettings(sections, json);
+            return findSettings(section, json);
         }
         return null;
     }
 
-    protected static Object findSettings(String[] sections, JsonObject jsonObject) {
-        return SettingsHelper.findSettings(sections, jsonObject);
+    protected static Object findSettings(String section, JsonObject jsonObject) {
+        return SettingsHelper.findSettings(section, jsonObject);
     }
 
     /**

@@ -100,9 +100,13 @@ L
         <![CDATA[
     <p>
         <a href="https://github.com/redhat-developer/lsp4ij">LSP4IJ</a>
-        is a free and open-source <a href="https://microsoft.github.io/language-server-protocol/">Language Server
-        protocol (LSP)
-    </a> client compatible with all flavors of IntelliJ.
+        is a free and open-source
+
+        <ul>
+          <li><a href="https://microsoft.github.io/language-server-protocol/">Language Server protocol (LSP)</a> client compatible with all flavors of IntelliJ.</li>
+          <li><a href="https://microsoft.github.io/debug-adapter-protocol/" >Debug Adapter Protocol</a> support
+          with <a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/DAP.md" >Debug Adapter Protocol Run/Debug configuration</a>.</li>
+        </ul>
     </p>
 
     <p>It allows you to integrate any <code>language server</code> that communicates with its client via <code>stdio</code>:
@@ -251,9 +255,9 @@ L
                 implementationClass="com.redhat.devtools.lsp4ij.features.diagnostics.LSPDiagnosticAnnotator"/>
 
         <!-- LSP textDocument/completion request support -->
-        <typedHandler id="LSPTypedHandlerDelegate"
+        <typedHandler id="LSPCompletionTriggerTypedHandler"
                       order="last"
-                      implementation="com.redhat.devtools.lsp4ij.features.completion.LSPTypedHandlerDelegate"/>
+                      implementation="com.redhat.devtools.lsp4ij.features.completion.LSPCompletionTriggerTypedHandler"/>
         <completion.contributor
                 id="LSPCompletionContributor"
                 language="any"
@@ -303,7 +307,16 @@ L
                 id="LSPCodeLensProvider"
                 implementation="com.redhat.devtools.lsp4ij.features.codeLens.LSPCodeLensProvider"/>
 
-        <!-- LSP textDocument/inlayHint + textDocument/colorInformation requests support -->
+        <!-- LSP textDocument/inlayHint requests support -->
+        <codeInsight.declarativeInlayProviderFactory
+                id="LSPDeclarativeInlayHintProvidersFactory"
+                implementation="com.redhat.devtools.lsp4ij.features.inlayhint.LSPDeclarativeInlayHintProvidersFactory"/>
+
+        <codeInsight.inlayActionHandler
+                handlerId="LSP4IJ"
+                implementationClass="com.redhat.devtools.lsp4ij.features.inlayhint.LSPDeclarativeInlayActionHandler"/>
+
+        <!-- LSP textDocument/colorInformation requests support -->
         <codeInsight.inlayProviderFactory
                 id="LSPInlayHintProvidersFactory"
                 implementation="com.redhat.devtools.lsp4ij.features.LSPInlayHintProvidersFactory"/>
@@ -322,17 +335,17 @@ L
                              language="TEXT"
                              implementationClass="com.redhat.devtools.lsp4ij.features.foldingRange.LSPFoldingRangeBuilder"
                              order="first"/>
-
         <lang.foldingBuilder id="LSPFoldingBuilderForTextMate"
                              language="textmate"
                              implementationClass="com.redhat.devtools.lsp4ij.features.foldingRange.LSPFoldingRangeBuilder"
                              order="first"/>
-        <!-- The code block providers are based on the same information from textDocument/folding -->
+
+        <!-- Code block providers -->
         <codeBlockProvider language="TEXT"
-                           implementationClass="com.redhat.devtools.lsp4ij.features.foldingRange.LSPCodeBlockProvider"
+                           implementationClass="com.redhat.devtools.lsp4ij.features.codeBlockProvider.LSPCodeBlockProvider"
                            order="first"/>
         <codeBlockProvider language="textmate"
-                           implementationClass="com.redhat.devtools.lsp4ij.features.foldingRange.LSPCodeBlockProvider"
+                           implementationClass="com.redhat.devtools.lsp4ij.features.codeBlockProvider.LSPCodeBlockProvider"
                            order="first"/>
 
         <!-- LSP textDocument/signatureHelp -->
@@ -354,10 +367,31 @@ L
                 id="LSPFormattingAndRangeBothService"
                 implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPFormattingAndRangeBothService"/>
 
+        <!-- LSP textDocument/onTypeFormatting support -->
+        <typedHandler
+                id="LSPServerSideOnTypeFormattingTypedHandler"
+                order="first"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPServerSideOnTypeFormattingTypedHandler"/>
+        <enterHandlerDelegate
+                id="LSPServerSideOnTypeFormattingEnterHandler"
+                order="first"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPServerSideOnTypeFormattingEnterHandler"/>
+
+        <!-- Client-side on-type formatting -->
+        <typedHandler
+                id="LSPClientSideOnTypeFormattingTypedHandler"
+                order="first, before LSPServerSideOnTypeFormattingTypedHandler"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPClientSideOnTypeFormattingTypedHandler"/>
+
         <!-- LSP textDocument/selectionRange request support -->
         <extendWordSelectionHandler
                 implementation="com.redhat.devtools.lsp4ij.features.selectionRange.LSPExtendWordSelectionHandler"
+                id="LSPExtendWordSelectionHandler"
                 order="first"/>
+        <extendWordSelectionHandler
+                implementation="com.redhat.devtools.lsp4ij.features.selectionRange.LSPCodeBlockExtendWordSelectionHandler"
+                id="LSPCodeBlockExtendWordSelectionHandler"
+                order="first, before LSPExtendWordSelectionHandler"/>
 
         <!-- LSP textDocument/semanticTokens request support -->
         <highlightVisitor
@@ -714,5 +748,33 @@ L
         <listener class="com.redhat.devtools.lsp4ij.client.indexing.ProjectIndexingOnlyDumbStrategy"
                   topic="com.intellij.openapi.project.DumbService$DumbModeListener"/>
     </projectListeners>
+
+    <!-- DAP Support -->
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+                serviceImplementation="com.redhat.devtools.lsp4ij.dap.descriptors.DebugAdapterManager"/>
+        <programRunner id="DAPDebugRunner"
+                       implementation="com.redhat.devtools.lsp4ij.dap.DAPDebugRunner"/>
+        <configurationType
+                implementation="com.redhat.devtools.lsp4ij.dap.configurations.DAPRunConfigurationType"/>
+        <xdebugger.breakpointType
+                implementation="com.redhat.devtools.lsp4ij.dap.breakpoints.DAPBreakpointType"/>
+        <completion.contributor id="DAPCompletionProcessor"
+                                language="any"
+                                implementationClass="com.redhat.devtools.lsp4ij.dap.completion.DAPCompletionProcessor"/>
+        <runConfigurationProducer id="DAPRunConfigurationProvider"
+                                  implementation="com.redhat.devtools.lsp4ij.dap.configurations.DAPRunConfigurationProvider" />
+        <applicationService
+                serviceImplementation="com.redhat.devtools.lsp4ij.dap.descriptors.templates.DAPTemplateManager"/>
+        <projectConfigurable
+                groupId="debugger"
+                id="debugAdapterDescriptorFactories"
+                bundle="messages.DAPBundle"
+                nonDefaultProject="true"
+                key="debug.adapter"
+                instance="com.redhat.devtools.lsp4ij.dap.settings.DebugAdapterDescriptorFactoryListConfigurable"/>
+        <applicationService id="UserDefinedDAPServerSettings"
+                            serviceImplementation="com.redhat.devtools.lsp4ij.dap.settings.UserDefinedDebugAdapterDescriptorFactorySettings"/>
+    </extensions>
 
 </idea-plugin>

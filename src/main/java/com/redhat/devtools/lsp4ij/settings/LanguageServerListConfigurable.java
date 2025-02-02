@@ -77,7 +77,7 @@ public class LanguageServerListConfigurable extends MasterDetailsComponent imple
 
     private boolean isTreeInitialized;
 
-    public LanguageServerListConfigurable(Project project) {
+    public LanguageServerListConfigurable(@NotNull Project project) {
         this.project = project;
         LanguageServersRegistry.getInstance().addLanguageServerDefinitionListener(listener);
     }

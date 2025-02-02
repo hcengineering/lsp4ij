@@ -35,6 +35,7 @@ import java.util.function.Function;
 public class MockTextDocumentService implements TextDocumentService {
 
     private CompletionList mockCompletionList;
+    private CompletionItem mockCompletionItem;
     private Hover mockHover;
     private List<? extends Location> mockDefinitionLocations;
     private List<? extends LocationLink> mockTypeDefinitions;
@@ -67,10 +68,11 @@ public class MockTextDocumentService implements TextDocumentService {
 
     public <U> MockTextDocumentService(Function<U, CompletableFuture<U>> futureFactory) {
         this._futureFactory = futureFactory;
-        // Some default values for mocks, can be overriden
+        // Some default values for mocks, can be overridden
         CompletionItem item = new CompletionItem();
         item.setLabel("Mock completion item");
         mockCompletionList = new CompletionList(false, Collections.singletonList(item));
+        mockCompletionItem = null;
         mockHover = new Hover(Collections.singletonList(Either.forLeft("Mock hover")), null);
         this.remoteProxies = new ArrayList<>();
         this.documentSymbols = Collections.emptyList();
@@ -88,7 +90,7 @@ public class MockTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(mockCompletionItem);
     }
 
     @Override
@@ -170,12 +172,12 @@ public class MockTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<? extends TextEdit>> rangeFormatting(DocumentRangeFormattingParams params) {
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(mockFormattingTextEdits);
     }
 
     @Override
     public CompletableFuture<List<? extends TextEdit>> onTypeFormatting(DocumentOnTypeFormattingParams params) {
-        return CompletableFuture.completedFuture(null);
+        return CompletableFuture.completedFuture(mockFormattingTextEdits);
     }
 
     @Override
@@ -267,6 +269,10 @@ public class MockTextDocumentService implements TextDocumentService {
         this.mockCompletionList = completionList;
     }
 
+    public void setMockCompletionItem(CompletionItem mockCompletionItem) {
+        this.mockCompletionItem = mockCompletionItem;
+    }
+
     public void setDidOpenCallback(CompletableFuture<DidOpenTextDocumentParams> didOpenExpectation) {
         this.didOpenCallback = didOpenExpectation;
     }
@@ -309,6 +315,7 @@ public class MockTextDocumentService implements TextDocumentService {
 
     public void reset() {
         this.mockCompletionList = new CompletionList();
+        this.mockCompletionItem = null;
         this.mockDefinitionLocations = Collections.emptyList();
         this.mockTypeDefinitions = Collections.emptyList();
         this.mockHover = null;
@@ -377,7 +384,27 @@ public class MockTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<SelectionRange>> selectionRange(SelectionRangeParams params) {
-        return CompletableFuture.completedFuture(mockSelectionRanges);
+        // Find the mock selection ranges that apply to the specified position. This allows us to have a single mock
+        // response that covers multiple positions that might be queried during a given test.
+        List<SelectionRange> applicableMockSelectionRanges = mockSelectionRanges
+                .stream()
+                .filter(selectionRange -> {
+                    Position startPosition = selectionRange.getRange().getStart();
+                    Position endPosition = selectionRange.getRange().getEnd();
+                    for (Position currentPosition : params.getPositions()) {
+                        if (((startPosition.getLine() < currentPosition.getLine()) ||
+                             ((startPosition.getLine() == currentPosition.getLine()) &&
+                              (startPosition.getCharacter() <= currentPosition.getCharacter()))) &&
+                            ((endPosition.getLine() > currentPosition.getLine()) ||
+                             ((endPosition.getLine() == currentPosition.getLine()) &&
+                              (endPosition.getCharacter() >= currentPosition.getCharacter())))) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .toList();
+        return CompletableFuture.completedFuture(applicableMockSelectionRanges);
     }
 
     public void setSemanticTokens(final SemanticTokens semanticTokens) {

@@ -14,7 +14,10 @@
 ## Description
 <!-- Plugin description -->
 
-LSP4IJ is a free and open-source [Language Server protocol (LSP)](https://microsoft.github.io/language-server-protocol/) client compatible with all flavours of IntelliJ.  
+LSP4IJ is a free and open-source 
+
+ * [Language Server protocol (LSP)](https://microsoft.github.io/language-server-protocol/) client compatible with all flavours of IntelliJ.
+ * [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) support with [Debug Adapter Protocol Run/Debug configuration](./docs/dap/DAP.md).
 
 It allows you to integrate any `language server` that communicates with its client via `stdio`:
 
@@ -72,6 +75,7 @@ Here are some projects that use LSP4IJ:
  * [Liberty Tools for IntelliJ](https://github.com/OpenLiberty/liberty-tools-intellij)
  * [Vespa Schema Language Support](https://github.com/vespa-engine/vespa/tree/master/integration/schema-language-server/clients/intellij)
  * [Jimmer DTO LSP](https://github.com/Enaium/jimmer-dto-lsp)
+ * [Qt Tools for Android Studio](https://code.qt.io/cgit/qt-labs/android-studio-tools.git/)
 
 ## Requirements
 

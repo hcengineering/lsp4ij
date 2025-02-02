@@ -103,8 +103,11 @@ public class CompletableFutures {
      * @param future the future to wait.
      * @param file   the Psi file.
      */
-    public static void waitUntilDone(@NotNull CompletableFuture<?> future,
+    public static void waitUntilDone(@Nullable CompletableFuture<?> future,
                                      @Nullable PsiFile file) throws ExecutionException, ProcessCanceledException {
+        if (future == null) {
+            return;
+        }
         long start = System.currentTimeMillis();
         final long modificationStamp = file != null ? file.getModificationStamp() : -1;
         while (!future.isDone()) {
@@ -120,7 +123,7 @@ public class CompletableFutures {
                 // wait for 25 ms
                 future.get(25, TimeUnit.MILLISECONDS);
             } catch (TimeoutException ignore) {
-                if (!future.isDone() && System.currentTimeMillis() - start > 5000 && ProjectIndexingManager.isIndexingAll()){
+                if (file != null && !future.isDone() && System.currentTimeMillis() - start > 5000 && ProjectIndexingManager.isIndexingAll()){
                     // When some projects are being indexed,
                     // the language server startup can take a long time
                     // and the LSP feature (ex: codeLens)
@@ -151,10 +154,13 @@ public class CompletableFutures {
      * @param title  the task title.
      * @param file   the Psi file.
      */
-    public static void waitUntilDoneAsync(@NotNull CompletableFuture<?> future,
+    public static void waitUntilDoneAsync(@Nullable CompletableFuture<?> future,
                                           @NotNull String title,
                                           @NotNull PsiFile file) {
 
+        if (future == null) {
+            return;
+        }
         ProgressManager.getInstance().run(new Task.Backgroundable(file.getProject(), title, true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
