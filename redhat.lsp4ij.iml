@@ -15,6 +15,7 @@
     <orderEntry type="module" module-name="intellij.platform.ide.util.io" />
     <orderEntry type="module" module-name="intellij.platform.editor.ex" />
     <orderEntry type="module" module-name="intellij.platform.core.ui" />
+    <orderEntry type="module" module-name="intellij.platform.debugger" />
     <orderEntry type="module" module-name="intellij.platform.execution.impl" />
     <orderEntry type="module" module-name="intellij.platform.util.ui" />
     <orderEntry type="module" module-name="intellij.textmate" />
@@ -138,6 +139,24 @@
           <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/lsp4j/org.eclipse.lsp4j/0.21.1/org.eclipse.lsp4j-0.21.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/lsp4j/org.eclipse.lsp4j.jsonrpc/0.21.1/org.eclipse.lsp4j.jsonrpc-0.21.1-sources.jar!/" />
         </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="eclipse.lsp4j.debug" type="repository">
+        <properties include-transitive-deps="false" maven-id="org.eclipse.lsp4j:org.eclipse.lsp4j.debug:0.21.1">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/eclipse/lsp4j/org.eclipse.lsp4j.debug/0.21.1/org.eclipse.lsp4j.debug-0.21.1.jar">
+              <sha256sum>4eb8196cc60e832a75080c855f4723b138b6fa7bf287b72d5ae2c05b97528e05</sha256sum>
+            </artifact>
+          </verification>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/lsp4j/org.eclipse.lsp4j.debug/0.21.1/org.eclipse.lsp4j.debug-0.21.1.jar!/" />
+        </CLASSES>
+        <JAVADOC>
+          <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/lsp4j/org.eclipse.lsp4j.debug/0.21.1/org.eclipse.lsp4j.debug-0.21.1-javadoc.jar!/" />
+        </JAVADOC>
+        <SOURCES />
       </library>
     </orderEntry>
     <orderEntry type="module-library">
