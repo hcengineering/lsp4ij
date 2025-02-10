@@ -14,7 +14,10 @@ import com.intellij.openapi.util.NlsSafe;
 import com.intellij.psi.ElementDescriptionLocation;
 import com.intellij.psi.ElementDescriptionProvider;
 import com.intellij.psi.PsiElement;
+import com.intellij.usageView.UsageViewLongNameLocation;
+import com.intellij.usageView.UsageViewShortNameLocation;
 import com.redhat.devtools.lsp4ij.LanguageServerBundle;
+import com.redhat.devtools.lsp4ij.features.LSPPsiElement;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +27,10 @@ import org.jetbrains.annotations.Nullable;
 public class LSPUsageElementDescriptionProvider implements ElementDescriptionProvider {
     @Override
     public @Nullable @NlsSafe String getElementDescription(@NotNull PsiElement element, @NotNull ElementDescriptionLocation location) {
+        if (location instanceof UsageViewLongNameLocation ||
+            location instanceof UsageViewShortNameLocation && element instanceof LSPPsiElement) {
+            return ((LSPPsiElement)element).getName();
+        }
         if (element instanceof LSPUsageTriggeredPsiElement) {
             return LanguageServerBundle.message("usage.description");
         }
