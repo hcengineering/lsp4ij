@@ -21,6 +21,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.containers.ContainerUtil;
+import com.intellij.util.text.CharArrayUtil;
 import com.redhat.devtools.lsp4ij.LSPFileSupport;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.lsp4ij.client.ExecuteLSPFeatureStatus;
@@ -163,6 +164,11 @@ public class LSPFoldingRangeBuilder extends CustomFoldingBuilder {
             int end = getEndOffset(foldingRange, document);
             // The end offsets can fall a bit short, so look for the closing brace character
             if (closeBraceChar != null) {
+                if (foldingRange.getEndCharacter() == null) {
+                    // if end character is not set, we need to search from last non-whitespace char
+                    int lineStart = document.getLineStartOffset(document.getLineNumber(end));
+                    end = CharArrayUtil.shiftBackward(documentChars, lineStart, end," \t\n\r");
+                }
                 while ((end < documentLength) && (documentChars.charAt(end) != closeBraceChar)) {
                     end++;
                 }
