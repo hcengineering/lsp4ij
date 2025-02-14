@@ -273,17 +273,11 @@ public class LspSnippetParser {
     }
 
     private void handleText() throws IOException {
-        String text = readString('$', '}');
+        String text = readString('$');
         if (!text.isEmpty() && text.charAt(text.length() - 1) == '\\') {
-            switch (current) {
-                case '$':
-                    // Escape \$ to add '$' only as text.
-                    text = text.substring(0, text.length() - 1) + '$';
-                    break;
-                case '}':
-                    // Escape \} to add '}' only as text.
-                    text = text.substring(0, text.length() - 1) + '}';
-                    break;
+            if (readChar('$')) {
+                // Escape \$ to add '$' only as text.
+                text = text.substring(0, text.length() - 1) + '$';
             }
         }
         handler.text(text);
