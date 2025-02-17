@@ -5,6 +5,18 @@
     <vendor email="developers@redhat.com" url="https://github.com/redhat-developer/lsp4ij/issues">Red-Hat</vendor>
 
     <change-notes><![CDATA[
+    <h3>0.10.0</h3>
+    <ul>
+      <li><a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/UserGuide.md" >Debug Adapter Protocol</a> support</li>
+      <li>LSP textDocument/onTypeFormatting support</li>
+      <li>On type formating client side, based on LSP selectionRanges / foldingRange</li>
+      <li>LSP Inlay Hints improvement by adopting no deprecated codeInsight.declarativeInlayProviderFactory extension point.</li>
+      <li>LSP API to customize file URI</li>
+      <li>LSP API to customize LSP progress</li>
+      <li>Fixing bugs</li>
+    </ul>
+    Learn more in the <a href="https://github.com/redhat-developer/lsp4ij/milestone/11?closed=1">changelog</a>.
+
     <h3>0.9.0</h3>
     <ul>
       <li>Support for <a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/LSPSupport.md#selection-range">Selection Range</a></li>
@@ -16,7 +28,7 @@
       <li>Fixing bugs</li>
     </ul>
     Learn more in the <a href="https://github.com/redhat-developer/lsp4ij/milestone/10?closed=1">changelog</a>.
-L
+
     <h3>0.8.1</h3>
     <ul>
       <li>Remove using internal API ProjectIndexingActivityHistoryListener</li>
@@ -105,7 +117,7 @@ L
         <ul>
           <li><a href="https://microsoft.github.io/language-server-protocol/">Language Server protocol (LSP)</a> client compatible with all flavors of IntelliJ.</li>
           <li><a href="https://microsoft.github.io/debug-adapter-protocol/" >Debug Adapter Protocol</a> support
-          with <a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/DAP.md" >Debug Adapter Protocol Run/Debug configuration</a>.</li>
+          with <a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/UserGuide.md" >Debug Adapter Protocol Run/Debug configuration</a>.</li>
         </ul>
     </p>
 
@@ -176,7 +188,7 @@ L
     <depends optional="true">com.redhat.devtools.intellij.telemetry</depends>
     <depends optional="true" config-file="plugin-json.xml">com.intellij.modules.json</depends>
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
-    <idea-version since-build="232.*"/>
+    <idea-version since-build="233.*"/>
 
     <!-- LSP extension points -->
     <extensionPoints>
@@ -366,6 +378,25 @@ L
         <formattingService
                 id="LSPFormattingAndRangeBothService"
                 implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPFormattingAndRangeBothService"/>
+
+        <!-- These provide an improved editor experience in abstract file type and TextMate files -->
+        <typedHandler
+                id="LSPEditorImprovementsTypedHandler"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPEditorImprovementsTypedHandler"
+                order="first, before LSPCompletionTriggerTypedHandler, before LSPClientSideOnTypeFormattingTypedHandler, before LSPServerSideOnTypeFormattingTypedHandler"/>
+        <backspaceHandlerDelegate
+                id="LSPEditorImprovementsBackspaceHandler"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPEditorImprovementsBackspaceHandler"
+                order="first"/>
+        <typedHandler
+                id="LSPImprovedTextMateTypedHandler"
+                order="first, before LSPCompletionTriggerTypedHandler, before LSPClientSideOnTypeFormattingTypedHandler, before LSPServerSideOnTypeFormattingTypedHandler"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPImprovedTextMateTypedHandler"/>
+        <!-- Workaround for https://youtrack.jetbrains.com/issue/IJPL-159454 -->
+        <enterHandlerDelegate
+                id="LSPEditorImprovementsEnterBetweenBracesHandler"
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPEditorImprovementsEnterBetweenBracesHandler"
+                order="first, before EnterBetweenBracesHandler, before LSPServerSideOnTypeFormattingEnterHandler"/>
 
         <!-- LSP textDocument/onTypeFormatting support -->
         <typedHandler

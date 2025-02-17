@@ -17,13 +17,13 @@
 LSP4IJ is a free and open-source 
 
  * [Language Server protocol (LSP)](https://microsoft.github.io/language-server-protocol/) client compatible with all flavours of IntelliJ.
- * [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) support with [Debug Adapter Protocol Run/Debug configuration](./docs/dap/DAP.md).
+ * [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) support with [Debug Adapter Protocol Run/Debug configuration](./docs/dap/UserGuide.md).
 
 It allows you to integrate any `language server` that communicates with its client via `stdio`:
 
 * by `developing an IntelliJ plugin` with LSP `extension points`:
-  * [com.redhat.devtools.lsp4ij.server](./docs/DeveloperGuide.md#declare-server-with-extension-point) extension point to define a language server.
-  * [com.redhat.devtools.lsp4ij.languageMapping](./docs/DeveloperGuide.md#declare-language-mapping-with-extension-point) to associate an IntelliJ language with a language server definition.
+  * [com.redhat.devtools.lsp4ij.server](./docs/DeveloperGuide.md#extension-point-declaration) extension point to define a language server.
+  * [com.redhat.devtools.lsp4ij.languageMapping](./docs/DeveloperGuide.md#declare-file-mappings) to associate an IntelliJ language with a language server definition.
 * by manually adding [language server definitions](./docs/UserDefinedLanguageServer.md), 
 supporting custom server settings. This approach doesn't require developing a specific IntelliJ plugin.
 
@@ -76,6 +76,7 @@ Here are some projects that use LSP4IJ:
  * [Vespa Schema Language Support](https://github.com/vespa-engine/vespa/tree/master/integration/schema-language-server/clients/intellij)
  * [Jimmer DTO LSP](https://github.com/Enaium/jimmer-dto-lsp)
  * [Qt Tools for Android Studio](https://code.qt.io/cgit/qt-labs/android-studio-tools.git/)
+ * [Clojure LSP Intellij](https://github.com/clojure-lsp/clojure-lsp-intellij)
 
 ## Requirements
 

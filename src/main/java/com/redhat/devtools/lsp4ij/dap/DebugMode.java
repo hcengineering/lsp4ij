@@ -13,20 +13,20 @@ package com.redhat.devtools.lsp4ij.dap;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Debugging type.
+ * The debug mode ("launch", "attach").
  */
-public enum DebuggingType {
+public enum DebugMode {
 
     LAUNCH,
     ATTACH;
 
     @NotNull
-    public static DebuggingType get(String value) {
+    public static DebugMode get(String value) {
         try {
-            return DebuggingType.valueOf(value.toUpperCase());
+            return DebugMode.valueOf(value.toUpperCase());
         }
         catch(Exception e) {
-            return DebuggingType.LAUNCH;
+            return DebugMode.LAUNCH;
         }
     }
 }

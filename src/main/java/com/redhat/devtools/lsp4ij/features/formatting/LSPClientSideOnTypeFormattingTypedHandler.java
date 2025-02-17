@@ -22,26 +22,24 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.util.containers.ContainerUtil;
+import com.redhat.devtools.lsp4ij.LSPIJEditorUtils;
 import com.redhat.devtools.lsp4ij.LanguageServerItem;
+import com.redhat.devtools.lsp4ij.LanguageServersRegistry;
 import com.redhat.devtools.lsp4ij.LanguageServiceAccessor;
 import com.redhat.devtools.lsp4ij.ServerStatus;
 import com.redhat.devtools.lsp4ij.client.features.LSPFormattingFeature;
 import com.redhat.devtools.lsp4ij.client.features.LSPFormattingFeature.FormattingScope;
 import com.redhat.devtools.lsp4ij.features.codeBlockProvider.LSPCodeBlockProvider;
-import com.redhat.devtools.lsp4ij.features.codeBlockProvider.LSPCodeBlockUtils;
 import com.redhat.devtools.lsp4ij.features.completion.LSPCompletionTriggerTypedHandler;
 import com.redhat.devtools.lsp4ij.features.selectionRange.LSPSelectionRangeSupport;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 import static com.intellij.codeInsight.editorActions.ExtendWordSelectionHandlerBase.expandToWholeLinesWithBlanks;
 import static com.redhat.devtools.lsp4ij.internal.CompletableFutures.isDoneNormally;
-import static com.redhat.devtools.lsp4ij.internal.CompletableFutures.waitUntilDone;
 
 /**
  * Typed handler for LSP4IJ-managed files that performs automatic on-type formatting for specific keystrokes.
@@ -54,6 +52,11 @@ public class LSPClientSideOnTypeFormattingTypedHandler extends TypedHandlerDeleg
                             @NotNull Project project,
                             @NotNull Editor editor,
                             @NotNull PsiFile file) {
+        if (!LanguageServersRegistry.getInstance().isFileSupported(file)) {
+            // The file is not associated to a language server
+            return super.charTyped(charTyped, project, editor, file);
+        }
+
         LSPFormattingFeature formattingFeature = getFormattingFeature(file);
         if (formattingFeature != null) {
             boolean rangeFormattingSupported = formattingFeature.isRangeFormattingSupported(file);
@@ -63,7 +66,7 @@ public class LSPClientSideOnTypeFormattingTypedHandler extends TypedHandlerDeleg
                 // Make sure the formatter supports formatting of the configured scope
                 ((formattingFeature.getFormatOnCloseBraceScope(file) == FormattingScope.FILE) || rangeFormattingSupported)) {
                 Map.Entry<Character, Character> bracePair = ContainerUtil.find(
-                        LSPCodeBlockUtils.getBracePairs(file).entrySet(),
+                        LSPIJEditorUtils.getBracePairs(file).entrySet(),
                         entry -> entry.getValue() == charTyped
                 );
                 if (bracePair != null) {
@@ -140,12 +143,19 @@ public class LSPClientSideOnTypeFormattingTypedHandler extends TypedHandlerDeleg
 
         //noinspection TryWithIdenticalCatches
         try {
-            waitUntilDone(languageServersFuture, file);
+            // wait few ms to get formatting features to avoid freezing UI
+            // when server started and didOpen must occur.
+            languageServersFuture.get(500, TimeUnit.MILLISECONDS);
         } catch (ProcessCanceledException e) {
             return null;
         } catch (CancellationException e) {
             return null;
         } catch (ExecutionException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (TimeoutException e) {
             return null;
         }
 
@@ -180,12 +190,14 @@ public class LSPClientSideOnTypeFormattingTypedHandler extends TypedHandlerDeleg
             int beforeOffset = offset - 1;
             TextRange codeBlockRange = LSPCodeBlockProvider.getCodeBlockRange(editor, file, beforeOffset);
             if (codeBlockRange != null) {
-                int startOffset = codeBlockRange.getStartOffset();
-                int endOffset = codeBlockRange.getEndOffset();
-
-                // Make sure the range includes the brace pair
                 Document document = editor.getDocument();
                 CharSequence documentChars = document.getCharsSequence();
+
+                // Constrain the offsets to the valid range of the file
+                int startOffset = Math.max(codeBlockRange.getStartOffset(), 0);
+                int endOffset = Math.min(codeBlockRange.getEndOffset(), documentChars.length() - 1);
+
+                // Make sure the range includes the brace pair
                 if ((startOffset > 0) && (documentChars.charAt(startOffset) != openBraceChar)) {
                     startOffset--;
                 }

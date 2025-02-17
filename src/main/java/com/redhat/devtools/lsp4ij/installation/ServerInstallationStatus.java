@@ -8,26 +8,29 @@
  * Contributors:
  * Red Hat, Inc. - initial API and implementation
  ******************************************************************************/
-package com.redhat.devtools.lsp4ij.dap;
-
-import org.jetbrains.annotations.NotNull;
+package com.redhat.devtools.lsp4ij.installation;
 
 /**
- * Connecting server strategy.
+ * Enum representing the installation status of a server.
  */
-public enum ConnectingServerStrategy {
+public enum ServerInstallationStatus {
+    /**
+     * The server is not installed.
+     */
+    NOT_INSTALLED,
 
-    NONE,
-    TIMEOUT,
-    TRACE;
+    /**
+     * Checking server installed
+     */
+    CHECKING_INSTALLED,
 
-    @NotNull
-    public static ConnectingServerStrategy get(String value) {
-        try {
-            return ConnectingServerStrategy.valueOf(value.toUpperCase());
-        }
-        catch(Exception e) {
-            return ConnectingServerStrategy.NONE;
-        }
-    }
+    /**
+     * The server is currently being installed.
+     */
+    INSTALLING,
+
+    /**
+     * The server has been successfully installed.
+     */
+    INSTALLED;
 }
