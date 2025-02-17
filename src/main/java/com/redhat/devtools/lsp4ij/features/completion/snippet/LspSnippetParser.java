@@ -232,11 +232,58 @@ public class LspSnippetParser {
 
     private void handleChoice(String name, Integer index) throws IOException {
         List<String> choices = new ArrayList<>();
-        String choice = readString(',', '|');
+        StringBuilder fullChoice = new StringBuilder();
+        String choice = readString(',', '|', '$', '}', '\\');
         while (!choice.isEmpty()) {
-            choices.add(choice);
+            if (choice.equals("\\")) {
+                if (readChar('$')) {
+                    fullChoice.append('$');
+                } else if (readChar('}')) {
+                    fullChoice.append('}');
+                } else if (readChar('\\')) {
+                    fullChoice.append('\\');
+                } else if (readChar('|')) {
+                    fullChoice.append('|');
+                } else if (readChar(',')) {
+                    fullChoice.append(',');
+                }
+                choice = readString(',', '|', '$', '}', '\\');
+                continue;
+            }
+            if (readChar('\\')) {
+                fullChoice.append(choice);
+                if (readChar('$')) {
+                    fullChoice.append('$');
+                } else if (readChar('}')) {
+                    fullChoice.append('}');
+                } else if (readChar('\\')) {
+                    fullChoice.append('\\');
+                } else if (readChar('|')) {
+                    fullChoice.append('|');
+                } else if (readChar(',')) {
+                    fullChoice.append(',');
+                }
+                if (current == ',') {
+                    choices.add(fullChoice.toString());
+                    fullChoice.setLength(0);
+                    read();
+                } else if (current == '|') {
+                    choices.add(fullChoice.toString());
+                    fullChoice.setLength(0);
+                    break;
+                }
+                choice = readString(',', '|', '$', '}', '\\');
+                continue;
+            }
+            if (fullChoice.isEmpty()) {
+                choices.add(choice);
+            } else {
+                fullChoice.append(choice);
+                choices.add(fullChoice.toString());
+                fullChoice.setLength(0);
+            }
             if (readChar(',')) {
-                choice = readString(',', '|');
+                choice = readString(',', '|', '$', '}', '\\');
             } else {
                 break;
             }
@@ -273,17 +320,17 @@ public class LspSnippetParser {
     }
 
     private void handleText() throws IOException {
-        String text = readString('$', '}');
+        String text = readString('$', '}', '\\');
         if (!text.isEmpty() && text.charAt(text.length() - 1) == '\\') {
-            switch (current) {
-                case '$':
-                    // Escape \$ to add '$' only as text.
-                    text = text.substring(0, text.length() - 1) + '$';
-                    break;
-                case '}':
-                    // Escape \} to add '}' only as text.
-                    text = text.substring(0, text.length() - 1) + '}';
-                    break;
+            if (readChar('$')) {
+                // Escape \$ to add '$' only as text.
+                text = text.substring(0, text.length() - 1) + '$';
+            } else if (readChar('}')) {
+                // Escape \ to add '\' only as text.
+                text = text.substring(0, text.length() - 1) + '}';
+            } else if (readChar('\\')) {
+                // Escape \ to add '\' only as text.
+                text = text.substring(0, text.length() - 1) + '\\';
             }
         }
         handler.text(text);
