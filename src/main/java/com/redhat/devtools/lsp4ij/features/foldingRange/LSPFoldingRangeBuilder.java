@@ -66,8 +66,10 @@ public class LSPFoldingRangeBuilder extends CustomFoldingBuilder {
         List<FoldingRange> foldingRanges = getFoldingRanges(file);
         if (!ContainerUtil.isEmpty(foldingRanges)) {
             for (FoldingRange foldingRange : foldingRanges) {
-                TextRange textRange = getTextRange(foldingRange, file, document);
-                if ((textRange != null) && (textRange.getLength() > 0)) {
+                int start = getStartOffset(foldingRange, document);
+                int end = getEndOffset(foldingRange, document);
+                TextRange textRange = TextRange.create(start, end);
+                if (textRange.getLength() > 0) {
                     descriptors.add(new FoldingDescriptor(
                             root.getNode(),
                             textRange,
