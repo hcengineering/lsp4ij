@@ -27,9 +27,9 @@ import org.jetbrains.annotations.Nullable;
 public class LSPUsageElementDescriptionProvider implements ElementDescriptionProvider {
     @Override
     public @Nullable @NlsSafe String getElementDescription(@NotNull PsiElement element, @NotNull ElementDescriptionLocation location) {
-        if (location instanceof UsageViewLongNameLocation ||
-            location instanceof UsageViewShortNameLocation && element instanceof LSPPsiElement) {
-            return ((LSPPsiElement)element).getName();
+        if ((location instanceof UsageViewLongNameLocation ||
+                location instanceof UsageViewShortNameLocation) && element instanceof LSPPsiElement) {
+            return ((LSPPsiElement) element).getName();
         }
         if (element instanceof LSPUsageTriggeredPsiElement) {
             return LanguageServerBundle.message("usage.description");
