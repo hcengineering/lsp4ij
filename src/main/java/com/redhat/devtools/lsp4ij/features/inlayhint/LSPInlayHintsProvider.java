@@ -161,7 +161,8 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
             }
             index++;
         }
-        sink.addPresentation(position, null, tooltip.toString(), true, builder -> {
+        var tooltipString = hasTooltip ? tooltip.toString() : null;
+        sink.addPresentation(position, null, tooltipString, true, builder -> {
             for (var build: builds) {
                 build.accept(builder);
             }
