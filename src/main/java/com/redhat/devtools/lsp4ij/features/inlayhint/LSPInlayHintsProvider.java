@@ -146,6 +146,10 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
         var tooltip = new StringBuilder();
         boolean hasTooltip = false;
         for (InlayHintLabelPart part : parts) {
+            if (part.getValue().isEmpty()) {
+                LOGGER.warn("Empty inlay hint label part");
+                index++;
+            }
             var info = buildSingleInlayHint(psiFile, hintData, index, part);
             builds.add(info.build);
             if (info.tooltip != null) {
