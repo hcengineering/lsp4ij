@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -105,7 +106,7 @@ public class LSPLazyCodeActions implements LSPLazyCodeActionProvider {
             if (isDoneNormally(lspCodeActionRequest)) {
                 codeActions = lspCodeActionRequest.getNow(null);
             }
-        } catch (ProcessCanceledException | ExecutionException e) {
+        } catch (ExecutionException | CancellationException e) {
             // ProcessCanceledException occurs when user move the mouse, in this case the hover popup is closed
             // but the lspCodeActionRequest is not cancelled here if user hover again the error.
         }
