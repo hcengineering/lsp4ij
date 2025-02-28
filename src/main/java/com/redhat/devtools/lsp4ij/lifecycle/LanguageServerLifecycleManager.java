@@ -15,6 +15,7 @@ package com.redhat.devtools.lsp4ij.lifecycle;
 
 import com.intellij.openapi.project.Project;
 import com.redhat.devtools.lsp4ij.LanguageServerWrapper;
+import com.redhat.devtools.lsp4ij.features.diagnostics.DiagnosticUtils;
 import org.eclipse.lsp4j.jsonrpc.MessageConsumer;
 import org.eclipse.lsp4j.jsonrpc.messages.Message;
 import org.jetbrains.annotations.NotNull;
@@ -56,6 +57,7 @@ public class LanguageServerLifecycleManager {
     }
 
     public void onStatusChanged(LanguageServerWrapper languageServer) {
+        DiagnosticUtils.clearDiagnostics(languageServer);
         if (isDisposed()) {
             return;
         }
