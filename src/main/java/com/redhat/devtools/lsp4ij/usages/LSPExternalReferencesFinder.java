@@ -13,6 +13,8 @@
  *******************************************************************************/
 package com.redhat.devtools.lsp4ij.usages;
 
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -55,7 +57,14 @@ public final class LSPExternalReferencesFinder {
     public static void processExternalReferences(@NotNull PsiFile file,
                                                  int offset,
                                                  @NotNull Processor<PsiReference> processor) {
-        processExternalReferences(file, offset, file.getUseScope(), processor);
+        SearchScope scope;
+        if (ApplicationManager.getApplication().isReadAccessAllowed()) {
+            scope = file.getUseScope();
+        } else {
+            scope = ReadAction.compute(file::getUseScope);
+        }
+
+        processExternalReferences(file, offset, scope, processor);
     }
 
     /**
