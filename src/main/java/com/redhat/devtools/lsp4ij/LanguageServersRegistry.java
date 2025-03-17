@@ -31,10 +31,22 @@ import com.redhat.devtools.lsp4ij.internal.SimpleLanguageUtils;
 import com.redhat.devtools.lsp4ij.internal.StringUtils;
 import com.redhat.devtools.lsp4ij.launching.ServerMappingSettings;
 import com.redhat.devtools.lsp4ij.launching.UserDefinedLanguageServerSettings;
-import com.redhat.devtools.lsp4ij.server.definition.*;
-import com.redhat.devtools.lsp4ij.server.definition.extension.*;
+import com.redhat.devtools.lsp4ij.server.definition.LanguageServerDefinition;
+import com.redhat.devtools.lsp4ij.server.definition.LanguageServerDefinitionListener;
+import com.redhat.devtools.lsp4ij.server.definition.LanguageServerFileAssociation;
+import com.redhat.devtools.lsp4ij.server.definition.ServerFileNamePatternMapping;
+import com.redhat.devtools.lsp4ij.server.definition.ServerFileTypeMapping;
+import com.redhat.devtools.lsp4ij.server.definition.ServerLanguageMapping;
+import com.redhat.devtools.lsp4ij.server.definition.ServerMapping;
+import com.redhat.devtools.lsp4ij.server.definition.extension.ExtensionLanguageServerDefinition;
+import com.redhat.devtools.lsp4ij.server.definition.extension.FileNamePatternMappingExtensionPointBean;
+import com.redhat.devtools.lsp4ij.server.definition.extension.FileTypeMappingExtensionPointBean;
+import com.redhat.devtools.lsp4ij.server.definition.extension.LanguageMappingExtensionPointBean;
+import com.redhat.devtools.lsp4ij.server.definition.extension.SemanticTokensColorsProviderExtensionPointBean;
+import com.redhat.devtools.lsp4ij.server.definition.extension.ServerExtensionPointBean;
 import com.redhat.devtools.lsp4ij.server.definition.launching.UserDefinedLanguageServerDefinition;
 import com.redhat.devtools.lsp4ij.usages.LSPFindUsagesProvider;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -44,7 +56,8 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-import static com.redhat.devtools.lsp4ij.server.definition.extension.LanguageMappingExtensionPointBean.DEFAULT_DOCUMENT_MATCHER;
+import static com.redhat.devtools.lsp4ij.launching.ServerMappingSettings.toServerMappingSettings;
+import static com.redhat.devtools.lsp4ij.launching.ServerMappingSettings.toServerMappings;
 
 /**
  * Language servers registry.
@@ -388,66 +401,11 @@ public class LanguageServersRegistry {
         }
     }
 
-    private void updateAssociations(@NotNull LanguageServerDefinition definition, @NotNull List<ServerMapping> mappings) {
-        if (mappings != null) {
-            for (ServerMapping mapping : mappings) {
-                registerAssociation(definition, mapping);
-            }
+    private void updateAssociations(@NotNull LanguageServerDefinition definition,
+                                    @NotNull List<ServerMapping> mappings) {
+        for (ServerMapping mapping : mappings) {
+            registerAssociation(definition, mapping);
         }
-    }
-
-    @NotNull
-    private static List<ServerMappingSettings> toServerMappingSettings(@NotNull List<ServerMapping> mappings) {
-        return mappings
-                .stream()
-                .map(mapping -> {
-                    if (mapping instanceof ServerLanguageMapping languageMapping) {
-                        return ServerMappingSettings.createLanguageMappingSettings(languageMapping.getLanguage().getID(), languageMapping.getLanguageId());
-                    } else if (mapping instanceof ServerFileTypeMapping fileTypeMapping) {
-                        return ServerMappingSettings.createFileTypeMappingSettings(fileTypeMapping.getFileType().getName(), fileTypeMapping.getLanguageId());
-                    } else if (mapping instanceof ServerFileNamePatternMapping fileNamePatternMapping) {
-                        return ServerMappingSettings.createFileNamePatternsMappingSettings(fileNamePatternMapping.getFileNamePatterns(), fileNamePatternMapping.getLanguageId());
-                    }
-                    // should never occur
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    private static List<ServerMapping> toServerMappings(String serverId, @Nullable List<ServerMappingSettings> mappingSettings) {
-        List<ServerMapping> mappings = new ArrayList<>();
-        if (mappingSettings != null && !mappingSettings.isEmpty()) {
-            for (var mapping : mappingSettings) {
-                String languageId = mapping.getLanguageId();
-                String mappingLanguage = mapping.getLanguage();
-                if (!StringUtils.isEmpty(mappingLanguage)) {
-                    Language language = Language.findLanguageByID(mappingLanguage);
-                    if (language != null) {
-                        mappings.add(new ServerLanguageMapping(language, serverId, languageId, DEFAULT_DOCUMENT_MATCHER));
-                    }
-                } else {
-                    boolean fileTypeMappingCreated = false;
-                    String mappingFileType = mapping.getFileType();
-                    if (!StringUtils.isEmpty(mappingFileType)) {
-                        FileType fileType = FileTypeManager.getInstance().findFileTypeByName(mappingFileType);
-                        if (fileType != null) {
-                            // Register file type mapping from settings
-                            mappings.add(new ServerFileTypeMapping(fileType, serverId, languageId, DEFAULT_DOCUMENT_MATCHER));
-                            fileTypeMappingCreated = true;
-                        }
-                    }
-                    if (!fileTypeMappingCreated) {
-                        List<String> patterns = mapping.getFileNamePatterns();
-                        if (patterns != null) {
-                            // Register file name patterns mapping from settings
-                            mappings.add(new ServerFileNamePatternMapping(patterns, serverId, languageId, DEFAULT_DOCUMENT_MATCHER));
-                        }
-                    }
-                }
-            }
-        }
-        return mappings;
     }
 
     public void removeServerDefinition(@NotNull Project project, @NotNull LanguageServerDefinition serverDefinition) {
@@ -477,6 +435,7 @@ public class LanguageServersRegistry {
                 .filter(mapping -> definition.equals(mapping.getServerDefinition()))
                 .toList();
         fileAssociations.removeAll(mappingsToRemove);
+        definition.removeAssociations();
     }
 
     public LanguageServerDefinitionListener.@Nullable LanguageServerChangedEvent updateServerDefinition(@NotNull UpdateServerDefinitionRequest request,
@@ -516,7 +475,7 @@ public class LanguageServersRegistry {
         settings.setMappings(request.mappings());
 
         if (nameChanged || commandChanged || userEnvironmentVariablesChanged || includeSystemEnvironmentVariablesChanged ||
-                mappingsChanged || configurationContentChanged || initializationOptionsContentChanged) {
+            mappingsChanged || configurationContentChanged || initializationOptionsContentChanged) {
             // Notifications
             LanguageServerDefinitionListener.LanguageServerChangedEvent event = new LanguageServerDefinitionListener.LanguageServerChangedEvent(
                     request.project(),
@@ -594,6 +553,33 @@ public class LanguageServersRegistry {
             }
             return true;
         }
+        return false;
+    }
+
+    /**
+     * Returns true if the virtual file and optional language are supported by a language server and false otherwise.
+     * This signature should be used only when it is not yet possible yet to check the PSI file because it is in the
+     * process of being created via a file view provider factory. If a PSI file is available, one of the other
+     * signatures of {@link #isFileSupported} should be used instead.
+     *
+     * @param virtualFile the virtual file
+     * @param language    the language
+     * @return true if the virtual file is supported by a configured language server and false otherwise.
+     */
+    @ApiStatus.Internal
+    public boolean isFileSupported(@Nullable VirtualFile virtualFile, @Nullable Language language) {
+        if (virtualFile == null) {
+            return false;
+        }
+
+        FileType fileType = virtualFile.getFileType();
+        String fileName = virtualFile.getName();
+        if (fileAssociations
+                .stream()
+                .anyMatch(mapping -> mapping.match(language, fileType, fileName))) {
+            return virtualFile.isInLocalFileSystem() || !(virtualFile instanceof LightVirtualFile);
+        }
+
         return false;
     }
 

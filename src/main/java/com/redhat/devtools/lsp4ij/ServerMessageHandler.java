@@ -178,12 +178,12 @@ public class ServerMessageHandler {
                     .completedFuture(SHOW_DOCUMENT_RESULT_WITH_SUCCESS);
         }
         boolean focusEditor = params.getTakeFocus() != null ? params.getTakeFocus() : false;
-        var position = params.getSelection() != null ? params.getSelection().getStart() : null;
+        var selection = params.getSelection();
 
         CompletableFuture<ShowDocumentResult> future = new CompletableFuture<>();
         ApplicationManager.getApplication()
                 .executeOnPooledThread(() -> {
-                    if (LSPIJUtils.openInEditor(uri, position, focusEditor, false, fileUriSupport, project)) {
+                    if (LSPIJUtils.openInEditor(uri, selection.getStart(), selection.getEnd(), focusEditor, false, fileUriSupport, project)) {
                         future.complete(SHOW_DOCUMENT_RESULT_WITH_SUCCESS);
                     }
                     future.complete(SHOW_DOCUMENT_RESULT_WITH_FAILURE);

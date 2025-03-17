@@ -37,6 +37,16 @@ public class ClientConfigurationSettings {
     }
 
     /**
+     * Client-side breadcrumbs settings.
+     */
+    public static class ClientConfigurationBreadcrumbsSettings {
+        /**
+         * Whether or not the document symbols-based breadcrumbs info provider is enabled. Defaults to true.
+         */
+        public boolean enabled = true;
+    }
+
+    /**
      * Client-side editor behavior settings.
      */
     public static class ClientConfigurationEditorSettings {
@@ -53,9 +63,20 @@ public class ClientConfigurationSettings {
 
         /**
          * Whether or not the fix for <a href="https://youtrack.jetbrains.com/issue/IJPL-159454">IJPL-159454</a> is
-         * enabled. Default to true.
+         * enabled. Defaults to true.
          */
         public boolean enableEnterBetweenBracesFix = true;
+
+        /**
+         * Whether or not editor improvements for nested braces/brackets/parentheses in TextMate files are enabled.
+         * Defaults to true.
+         */
+        public boolean enableTextMateNestedBracesImprovements = true;
+
+        /**
+         * Whether or not the semantic tokens-based file view provider is enabled. Defaults to true.
+         */
+        public boolean enableSemanticTokensFileViewProvider = true;
     }
 
     /**
@@ -182,12 +203,17 @@ public class ClientConfigurationSettings {
     public @NotNull String statementTerminatorCharacters = "";
 
     /**
-     * Client-side code completion settings
+     * Client-side code completion settings.
      */
     public @NotNull ClientConfigurationCompletionSettings completion = new ClientConfigurationCompletionSettings();
 
     /**
-     * Client-side editor behavior settings
+     * Client-side breadcrumbs settings.
+     */
+    public @NotNull ClientConfigurationBreadcrumbsSettings breadcrumbs = new ClientConfigurationBreadcrumbsSettings();
+
+    /**
+     * Client-side editor behavior settings.
      */
     public @NotNull ClientConfigurationEditorSettings editor = new ClientConfigurationEditorSettings();
 
@@ -197,7 +223,7 @@ public class ClientConfigurationSettings {
     public @NotNull ClientConfigurationFormatSettings format = new ClientConfigurationFormatSettings();
 
     /**
-     * Client-side workspace symbol settings
+     * Client-side workspace symbol settings.
      */
     public @NotNull ClientConfigurationWorkspaceSymbolSettings workspaceSymbol = new ClientConfigurationWorkspaceSymbolSettings();
 }

@@ -36,44 +36,63 @@ public class DAPServerReadyTracker extends CompletableFuture<Void> implements Pr
 
     private final @NotNull ServerReadyConfig config;
     private final @NotNull ProcessHandler processHandler;
+    private final @NotNull DebugMode debugMode;
+    private @Nullable String address;
     private @Nullable Integer port;
     private boolean foundedTrace;
 
     public DAPServerReadyTracker(@NotNull ServerReadyConfig config,
+                                 @NotNull DebugMode debugMode,
                                  @NotNull ProcessHandler processHandler) {
         this.config = config;
+        this.debugMode = debugMode;
         this.processHandler = processHandler;
-        this.port = DebugAdapterDescriptor.getServerPort(processHandler);
+        this.port = config.getPort() != null ? config.getPort() : DebugAdapterDescriptor.getServerPort(processHandler);
+        this.address = config.getAddress();
         processHandler.addProcessListener(this);
         processHandler.putUserData(SERVER_READY_TRACKER_KEY, this);
     }
 
-
-    public @Nullable Integer getPort() {
+    @Nullable
+    public Integer getPort() {
         return port;
     }
 
+    @Nullable
+    public String getAddress() {
+        return address;
+    }
+
     public CompletableFuture<Void> track() {
-        if (!waitForTimeout()) {
-            if (!debugServerReadyPattern(null)) {
-                if (port == null) {
-                    onServerReady();
-                } else {
-                    // wait for available socket...
-                    CompletableFuture.supplyAsync(() -> {
-                        while (!DAPServerReadyTracker.this.isDone()) {
-                            // The tracker future has not been cancelled
-                            // Check if socket is available for the given port
-                            if (isSocketAvailable(InetAddress.getLoopbackAddress().getHostAddress(), port)) {
-                                // The socket is available, notify onServerReady
-                                break;
-                            }
-                        }
-                        return null;
-                    }).thenRun(() -> onServerReady());
+        if (waitForTimeout()) {
+            //  Wait for some timeout...
+            return this;
+        }
+        if (debugMode == DebugMode.ATTACH) {
+            // "attach" mode, DAP client can be connected to the server now
+            onServerReady();
+            return this;
+        }
+        if (debugServerReadyPattern(null)) {
+            return this;
+        }
+        if (port == null) {
+            onServerReady();
+            return this;
+        }
+        // wait for available socket...
+        CompletableFuture.supplyAsync(() -> {
+            while (!DAPServerReadyTracker.this.isDone()) {
+                // The tracker future has not been cancelled
+                // Check if socket is available for the given port
+                if (isSocketAvailable(address != null ? address : InetAddress.getLoopbackAddress().getHostAddress(),
+                        port)) {
+                    // The socket is available, notify onServerReady
+                    break;
                 }
             }
-        }
+            return null;
+        }).thenRun(() -> onServerReady());
         return this;
     }
 
@@ -115,7 +134,7 @@ public class DAPServerReadyTracker extends CompletableFuture<Void> implements Pr
     }
 
     private boolean waitForTimeout() {
-        Integer connectTimeout = config.connectTimeout();
+        Integer connectTimeout = config.getConnectTimeout();
         if (connectTimeout != null) {
             if (processHandler.isStartNotified()) {
                 // The process is started
@@ -136,17 +155,20 @@ public class DAPServerReadyTracker extends CompletableFuture<Void> implements Pr
     private boolean debugServerReadyPattern(@Nullable String text) {
         try {
             if (!foundedTrace) {
-                NetworkAddressExtractor trackTrace = config.debugServerReadyPattern();
+                NetworkAddressExtractor trackTrace = config.getDebugServerReadyPattern();
                 if (trackTrace != null) {
                     var result = trackTrace.extract(text);
                     if (result.matches()) {
                         // ex : text=DAP server listening at: 127.0.0.1:61537
                         if (port == null) {
-                           String extractedPort = result.port();
-                           if (extractedPort != null) {
-                               // ex: extractedPort=61537
-                               port = Integer.valueOf(extractedPort);
-                           }
+                            String extractedPort = result.port();
+                            if (extractedPort != null) {
+                                // ex: extractedPort=61537
+                                port = Integer.valueOf(extractedPort);
+                            }
+                        }
+                        if (address == null) {
+                            address = result.address();
                         }
                         foundedTrace = true;
                     }
@@ -160,5 +182,6 @@ public class DAPServerReadyTracker extends CompletableFuture<Void> implements Pr
         }
         return false;
     }
+
 
 }

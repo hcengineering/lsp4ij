@@ -5,6 +5,18 @@
     <vendor email="developers@redhat.com" url="https://github.com/redhat-developer/lsp4ij/issues">Red-Hat</vendor>
 
     <change-notes><![CDATA[
+    <h3>0.11.0</h3>
+    <ul>
+      <li>Performance improvements for LSP inlay hints</li>
+      <li>Performance improvements for LSP semantic tokens</li>
+      <li>Enhanced TextMate editing experience</li>
+      <li><a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/LSPApi.md#language-server-installer">Language Server Installer API</a> introduced</li>
+      <li>Improved Debug DAP support, now with "attach" functionality for supporting <a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/user-defined-dap/python-debugpy.md">Python - Debugpy</a></li>
+      <li>New (experimental) <a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/DeveloperGuide.md>extension point to register a DAP server</a> introduced</li>
+      <li>Fixing bugs</li>
+    </ul>
+    Learn more in the <a href="https://github.com/redhat-developer/lsp4ij/milestone/12?closed=1">changelog</a>.
+
     <h3>0.10.0</h3>
     <ul>
       <li><a href="https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/UserGuide.md" >Debug Adapter Protocol</a> support</li>
@@ -279,7 +291,8 @@
         <!-- LSP textDocument/definition request support -->
         <gotoDeclarationHandler
                 id="LSPGotoDeclarationHandler"
-                implementation="com.redhat.devtools.lsp4ij.features.navigation.LSPGotoDeclarationHandler"/>
+                implementation="com.redhat.devtools.lsp4ij.features.navigation.LSPGotoDeclarationHandler"
+                order="first"/>
 
         <!-- LSP textDocument/documentLink request support -->
         <externalAnnotator
@@ -300,6 +313,12 @@
                 language="textmate"
                 implementationClass="com.redhat.devtools.lsp4ij.features.documentSymbol.LSPDocumentSymbolStructureViewFactory"/>
 
+        <!-- Breadcrumbs/sticky lines support using document symbols -->
+        <breadcrumbsInfoProvider
+                id="LSPBreadcrumbsProvider"
+                implementation="com.redhat.devtools.lsp4ij.features.documentSymbol.LSPBreadcrumbsProvider"
+                order="last"/>
+
         <!-- LSP textDocument/documentHighlight request support -->
         <highlightUsagesHandlerFactory
                 id="LSPHighlightUsagesHandlerFactory"
@@ -312,12 +331,17 @@
 
         <!-- LSP textDocument/codeLens request support -->
         <codeInsight.codeVisionProviderFactory
+                id="DummyCodeVisionProviderFactory"
                 implementation="com.redhat.devtools.lsp4ij.features.codeLens.DummyCodeVisionProviderFactory"/>
         <config.codeVisionGroupSettingProvider
+                id="LSPCodeLensSettingsProvider"
                 implementation="com.redhat.devtools.lsp4ij.features.codeLens.LSPCodeLensSettingsProvider"/>
         <codeInsight.codeVisionProvider
                 id="LSPCodeLensProvider"
                 implementation="com.redhat.devtools.lsp4ij.features.codeLens.LSPCodeLensProvider"/>
+        <editorFactoryListener
+                id="LSPCodeLensEditorFactoryListener"
+                implementation="com.redhat.devtools.lsp4ij.features.codeLens.LSPCodeLensEditorFactoryListener" />
 
         <!-- LSP textDocument/inlayHint requests support -->
         <codeInsight.declarativeInlayProviderFactory
@@ -389,9 +413,9 @@
                 implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPEditorImprovementsBackspaceHandler"
                 order="first"/>
         <typedHandler
-                id="LSPImprovedTextMateTypedHandler"
+                id="LSPImprovedTextMateNestedBracesTypedHandler"
                 order="first, before LSPCompletionTriggerTypedHandler, before LSPClientSideOnTypeFormattingTypedHandler, before LSPServerSideOnTypeFormattingTypedHandler"
-                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPImprovedTextMateTypedHandler"/>
+                implementation="com.redhat.devtools.lsp4ij.features.formatting.LSPImprovedTextMateNestedBracesTypedHandler"/>
         <!-- Workaround for https://youtrack.jetbrains.com/issue/IJPL-159454 -->
         <enterHandlerDelegate
                 id="LSPEditorImprovementsEnterBetweenBracesHandler"
@@ -427,10 +451,36 @@
         <!-- LSP textDocument/semanticTokens request support -->
         <highlightVisitor
                 id="LSPSemanticTokensHighlightVisitor"
-                implementation="com.redhat.devtools.lsp4ij.features.semanticTokens.LSPSemanticTokensHighlightVisitor"/>
+                implementation="com.redhat.devtools.lsp4ij.features.semanticTokens.LSPSemanticTokensHighlightVisitor"
+                order="first"/>
         <colorSettingsPage
                 implementation="com.redhat.devtools.lsp4ij.features.semanticTokens.SemanticTokensColorSettingsPage"/>
 
+        <!-- File view provider based on textDocument/semanticTokens -->
+        <!-- We can register a view provider factory for TextMate files based on the language -->
+        <lang.fileViewProviderFactory
+                language="textmate"
+                implementationClass="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokensStructurelessFileViewProviderFactory"/>
+        <lang.elementManipulator
+                forClass="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokenPsiElement"
+                implementationClass="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokenPsiElementManipulator"/>
+        <lang.documentationProvider
+                language=""
+                implementationClass="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokenDocumentationProvider"/>
+
+        <!-- We cannot register one for plain text abstract file types, so we have to do that dynamically. Do so when a project is opened. -->
+        <postStartupActivity
+                implementation="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokensStructurelessFileViewProviderRegistrar$ProjectOpenedListener"/>
+    </extensions>
+
+    <applicationListeners>
+        <!-- Also do so when file type associations change -->
+        <listener
+                class="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokensStructurelessFileViewProviderRegistrar$FileTypesChangedListener"
+                topic="com.intellij.openapi.fileTypes.FileTypeListener"/>
+    </applicationListeners>
+
+    <extensions defaultExtensionNs="com.intellij">
         <!-- LSP textDocument/prepareTypeHierarchy request support -->
         <typeHierarchyProvider
                 language="TEXT"
@@ -781,9 +831,22 @@
     </projectListeners>
 
     <!-- DAP Support -->
+
+    <extensionPoints>
+
+        <!-- Debug adapter server extension point -->
+        <extensionPoint
+                name="debugAdapterServer"
+                beanClass="com.redhat.devtools.lsp4ij.dap.definitions.extension.DebugAdapterServerExtensionPointBean">
+            <with attribute="factoryClass" implements="com.redhat.devtools.lsp4ij.dap.descriptors.DebugAdapterDescriptorFactory"/>
+        </extensionPoint>
+
+    </extensionPoints>
+
     <extensions defaultExtensionNs="com.intellij">
+
         <applicationService
-                serviceImplementation="com.redhat.devtools.lsp4ij.dap.descriptors.DebugAdapterManager"/>
+                serviceImplementation="com.redhat.devtools.lsp4ij.dap.DebugAdapterManager"/>
         <programRunner id="DAPDebugRunner"
                        implementation="com.redhat.devtools.lsp4ij.dap.DAPDebugRunner"/>
         <configurationType
@@ -803,9 +866,9 @@
                 bundle="messages.DAPBundle"
                 nonDefaultProject="true"
                 key="debug.adapter"
-                instance="com.redhat.devtools.lsp4ij.dap.settings.DebugAdapterDescriptorFactoryListConfigurable"/>
+                instance="com.redhat.devtools.lsp4ij.dap.settings.DebugAdapterServerListConfigurable"/>
         <applicationService id="UserDefinedDAPServerSettings"
-                            serviceImplementation="com.redhat.devtools.lsp4ij.dap.settings.UserDefinedDebugAdapterDescriptorFactorySettings"/>
+                            serviceImplementation="com.redhat.devtools.lsp4ij.dap.settings.UserDefinedDebugAdapterServerSettings"/>
     </extensions>
 
 </idea-plugin>

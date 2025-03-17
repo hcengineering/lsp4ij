@@ -256,16 +256,27 @@ public class LanguageServiceAccessor implements Disposable {
                                                                             @Nullable LanguageServerDefinition matchServerDefinition) {
         // Collect started (or not) language servers which matches the given file.
         CompletableFuture<Collection<LanguageServerWrapper>> matchedServers = getMatchedLanguageServersWrappers(file, matchServerDefinition, beforeStartingServerFilter);
-        if (matchedServers.isDone() && matchedServers.getNow(Collections.emptyList()).isEmpty()) {
+        var matchedServersNow= matchedServers.getNow(Collections.emptyList());
+        if (matchedServers.isDone() && matchedServersNow.isEmpty()) {
             // None language servers matches the given file
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
+
 
         // getLanguageServers is generally called with Read Access.
         // We get the Document instance now, to avoid creating a new Read Action thread to get it from the file.
         // The document instance is only used when the file is opened, to add
         // LSP document listener to manage didOpen, didChange, etc.
-        Document document = ApplicationManager.getApplication().isReadAccessAllowed() ? LSPIJUtils.getDocument(file) : null;
+        boolean writeAccessAllowed = !ApplicationManager.getApplication().isWriteAccessAllowed();
+        boolean readAccessAllowed = !ApplicationManager.getApplication().isWriteAccessAllowed();
+        Document document = readAccessAllowed || (!writeAccessAllowed) ? LSPIJUtils.getDocument(file) : null;
+
+        // Try to get document, languageId information (used by didOpen) for each matched language server wrapper
+        // since here we should be in Read Action allowed
+        // to avoid creating a new ReadAction when didOpen occurs and avoid freeze
+        @Nullable
+        Map<LanguageServerWrapper, LanguageServerWrapper.LSPFileConnectionInfo> connectionFileInfo =
+                getFileConnectionInfoMap(file, matchedServersNow, document, project);
 
         // Returns the language servers which match the given file, start them and connect the file to each matched language server
         final List<LanguageServerItem> servers = Collections.synchronizedList(new ArrayList<>());
@@ -281,7 +292,11 @@ public class LanguageServiceAccessor implements Disposable {
                                                 .thenComposeAsync(server -> {
                                                     if (server != null &&
                                                             (afterStartingServerFilter == null || afterStartingServerFilter.test(clientFeatures))) {
-                                                        return wrapper.connect(file, document);
+                                                        var info = connectionFileInfo != null ? connectionFileInfo.get(wrapper) : null;
+                                                        if (info == null) {
+                                                            info = new LanguageServerWrapper.LSPFileConnectionInfo(document, null, null, !writeAccessAllowed);
+                                                        }
+                                                        return wrapper.connect(file, info);
                                                     }
                                                     return CompletableFuture.completedFuture(null);
                                                 }).thenAccept(server -> {
@@ -298,6 +313,31 @@ public class LanguageServiceAccessor implements Disposable {
             LOGGER.warn(e.getLocalizedMessage(), e);
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
+    }
+
+    @Nullable
+    private static Map<LanguageServerWrapper, LanguageServerWrapper.LSPFileConnectionInfo> getFileConnectionInfoMap(@NotNull VirtualFile file,
+                                                                                                                    @NotNull Collection<LanguageServerWrapper> languageServers,
+                                                                                                                    @Nullable Document document,
+                                                                                                                    @NotNull Project project) {
+        Map<LanguageServerWrapper, LanguageServerWrapper.LSPFileConnectionInfo> connectionFileInfo = null;
+        for (var ls : languageServers) {
+            var uri = ls.toUri(file);
+            if (uri != null && !ls.isConnectedTo(uri)) {
+                // The file is not connected to the current language server
+                // Get the required information for the didOpen (text and languageId) which requires a ReadAction.
+                if(document != null) {
+                    if (connectionFileInfo == null) {
+                        connectionFileInfo = new HashMap<>();
+                    }
+                    String text = document.getText();
+                    String languageId = ls.getServerDefinition().getLanguageId(file, project);
+                    var info = new LanguageServerWrapper.LSPFileConnectionInfo(document, text, languageId, true);
+                    connectionFileInfo.put(ls, info);
+                }
+            }
+        }
+        return connectionFileInfo;
     }
 
     /**

@@ -61,6 +61,8 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
 
     private LSPDocumentSymbolFeature documentSymbolFeature;
 
+    private LSPBreadcrumbsFeature breadcrumbsFeature;
+
     private LSPDiagnosticFeature diagnosticFeature;
 
     private LSPFoldingRangeFeature foldingRangeFeature;
@@ -640,6 +642,38 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
     public final LSPClientFeatures setDocumentSymbolFeature(@NotNull LSPDocumentSymbolFeature documentSymbolFeature) {
         documentSymbolFeature.setClientFeatures(this);
         this.documentSymbolFeature = documentSymbolFeature;
+        return this;
+    }
+
+    /**
+     * Returns the LSP breadcrumbs feature.
+     *
+     * @return the LSP breadcrumbs feature.
+     */
+    @NotNull
+    public final LSPBreadcrumbsFeature getBreadcrumbsFeature() {
+        if (breadcrumbsFeature == null) {
+            initBreadcrumbsFeature();
+        }
+        return breadcrumbsFeature;
+    }
+
+    private synchronized void initBreadcrumbsFeature() {
+        if (breadcrumbsFeature != null) {
+            return;
+        }
+        setBreadcrumbsFeature(new LSPBreadcrumbsFeature());
+    }
+
+    /**
+     * Initialize the LSP breadcrumbs feature.
+     *
+     * @param breadcrumbsFeature the LSP breadcrumbs feature.
+     * @return the LSP client features.
+     */
+    public final LSPClientFeatures setBreadcrumbsFeature(@NotNull LSPBreadcrumbsFeature breadcrumbsFeature) {
+        breadcrumbsFeature.setClientFeatures(this);
+        this.breadcrumbsFeature = breadcrumbsFeature;
         return this;
     }
 
@@ -1446,6 +1480,9 @@ public class LSPClientFeatures implements Disposable, FileUriSupport {
                     getReferencesFeature().getReferencesCapabilityRegistry();
             // register 'textDocument/rename' capability
             case LSPRequestConstants.TEXT_DOCUMENT_RENAME -> getRenameFeature().getRenameCapabilityRegistry();
+            // register 'textDocument/semanticTokens' capability
+            case LSPRequestConstants.TEXT_DOCUMENT_SEMANTIC_TOKENS ->
+                    getSemanticTokensFeature().getSemanticTokensCapabilityRegistry();
             // register 'textDocument/signatureHelp' capability
             case LSPRequestConstants.TEXT_DOCUMENT_SIGNATURE_HELP ->
                     getSignatureHelpFeature().getSignatureHelpCapabilityRegistry();

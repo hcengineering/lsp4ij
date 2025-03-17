@@ -240,7 +240,8 @@ public class LSPIJUtils {
      * </p>
      *
      * @param fileUri            the file Uri to open.
-     * @param position           the position.
+     * @param startPosition      the start position.
+     * @param endPosition        the end position to make it selected.
      * @param focusEditor        true if editor will take the focus and false otherwise.
      * @param createFileIfNeeded true if file must be created if doesn't exist and false otherwise.
      * @param fileUriSupport     the file Uri support.
@@ -248,12 +249,13 @@ public class LSPIJUtils {
      * @return true if file Url can be opened and false otherwise.
      */
     public static boolean openInEditor(@NotNull String fileUri,
-                                       @Nullable Position position,
+                                       @Nullable Position startPosition,
+                                       @Nullable Position endPosition,
                                        boolean focusEditor,
                                        boolean createFileIfNeeded,
                                        @Nullable FileUriSupport fileUriSupport,
                                        @NotNull Project project) {
-        if (position == null) {
+        if (startPosition == null) {
             // Try to get position information from the fileUri
             // ex :
             // - file:///c:/Users/azerr/Downloads/simpleTest/simpleTest/yes.lua#L2
@@ -267,7 +269,7 @@ public class LSPIJUtils {
             }
             boolean hasPosition = hashIndex > 0 && hashIndex != fileUri.length() - 1;
             if (hasPosition) {
-                position = toPosition(fileUri.substring(hashIndex + findHash.length()));
+                startPosition = toPosition(fileUri.substring(hashIndex + findHash.length()));
                 fileUri = fileUri.substring(0, hashIndex);
             }
         }
@@ -286,7 +288,27 @@ public class LSPIJUtils {
                 return result.get();
             }
         }
-        return openInEditor(file, position, focusEditor, project);
+        return openInEditor(file, startPosition, endPosition, focusEditor, project);
+    }
+
+    /**
+     * Open the given fileUrl in an editor and make the range selected.
+     *
+     * @param fileUri            the file Uri to open.
+     * @param position      the start position.
+     * @param focusEditor        true if editor will take the focus and false otherwise.
+     * @param createFileIfNeeded true if file must be created if doesn't exist and false otherwise.
+     * @param fileUriSupport     the file Uri support.
+     * @param project            the project.
+     * @return true if file Url can be opened and false otherwise.
+     */
+    public static boolean openInEditor(@NotNull String fileUri,
+                                       @Nullable Position position,
+                                       boolean focusEditor,
+                                       boolean createFileIfNeeded,
+                                       @Nullable FileUriSupport fileUriSupport,
+                                       @NotNull Project project) {
+       return openInEditor(fileUri, position, null, focusEditor, createFileIfNeeded, fileUriSupport, project);
     }
 
     private static boolean createFileAndOpenInEditor(@NotNull String fileUri, @NotNull Project project) {
@@ -358,6 +380,36 @@ public class LSPIJUtils {
     /**
      * Open the given file with the given position in an editor.
      *
+     * @param file          the file.
+     * @param startPosition the start position.
+     * @param endPosition   the end position to make it selected.
+     * @param focusEditor   true if editor will take the focus and false otherwise.
+     * @param project       the project.
+     * @return true if the file was opened and false otherwise.
+     */
+    public static boolean openInEditor(@Nullable VirtualFile file,
+                                       @Nullable Position startPosition,
+                                       @Nullable Position endPosition,
+                                       boolean focusEditor,
+                                       @NotNull Project project) {
+        if (file != null) {
+            final Document document = startPosition != null ? LSPIJUtils.getDocument(file) : null;
+            if (ApplicationManager.getApplication().isDispatchThread()) {
+                return doOpenInEditor(file, startPosition, endPosition, document, focusEditor, project);
+            } else {
+                AtomicBoolean result = new AtomicBoolean(false);
+                ApplicationManager.getApplication().invokeAndWait(() -> {
+                    result.set(doOpenInEditor(file, startPosition, endPosition, document, focusEditor, project));
+                });
+                return result.get();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Open the given file with the given position in an editor.
+     *
      * @param file        the file.
      * @param position    the position.
      * @param focusEditor true if editor will take the focus and false otherwise.
@@ -368,32 +420,28 @@ public class LSPIJUtils {
                                        @Nullable Position position,
                                        boolean focusEditor,
                                        @NotNull Project project) {
-        if (file != null) {
-            final Document document = position != null ? LSPIJUtils.getDocument(file) : null;
-            if (ApplicationManager.getApplication().isDispatchThread()) {
-                return doOpenInEditor(file, position, document, focusEditor, project);
-            } else {
-                AtomicBoolean result = new AtomicBoolean(false);
-                ApplicationManager.getApplication().invokeAndWait(() -> {
-                    result.set(doOpenInEditor(file, position, document, focusEditor, project));
-                });
-                return result.get();
-            }
-        }
-        return false;
+        return openInEditor(file, position, null, focusEditor, project);
     }
 
     private static boolean doOpenInEditor(@NotNull VirtualFile file,
-                                          @Nullable Position position,
+                                          @Nullable Position startPosition,
+                                          @Nullable Position endPosition,
                                           @Nullable Document document,
                                           boolean focusEditor,
                                           @NotNull Project project) {
-        if (position == null) {
+        if (startPosition == null) {
             return FileEditorManager.getInstance(project).openFile(file, true).length > 0;
         } else {
             if (document != null) {
-                OpenFileDescriptor desc = new OpenFileDescriptor(project, file, LSPIJUtils.toOffset(position, document));
-                return FileEditorManager.getInstance(project).openTextEditor(desc, focusEditor) != null;
+                OpenFileDescriptor desc = new OpenFileDescriptor(project, file, LSPIJUtils.toOffset(startPosition, document));
+                var startOffset = LSPIJUtils.toOffset(startPosition, document);
+                var editor = FileEditorManager.getInstance(project).openTextEditor(desc, focusEditor);
+                if (editor != null && endPosition != null && !startPosition.equals(endPosition)) {
+                    var endOffset = LSPIJUtils.toOffset(endPosition, document);
+                    editor.getSelectionModel().setSelection(startOffset, endOffset);
+                    editor.getCaretModel().moveToOffset(endOffset);
+                }
+                return editor != null;
             }
             return false;
         }

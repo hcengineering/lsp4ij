@@ -17,6 +17,7 @@ import com.intellij.ide.structureView.impl.common.PsiTreeElementBase;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.psi.PsiFile;
+import com.intellij.util.ArrayUtil;
 import com.redhat.devtools.lsp4ij.LSPFileSupport;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.lsp4ij.client.indexing.ProjectIndexingManager;
@@ -24,7 +25,7 @@ import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
+import javax.swing.Icon;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -60,8 +61,12 @@ public class LSPDocumentSymbolStructureViewModel extends StructureViewModelBase 
     @Override
     public void dispose() {
         super.dispose();
-        LSPDocumentSymbolSupport documentSymbolSupport = LSPFileSupport.getSupport(psiFile).getDocumentSymbolSupport();
-        documentSymbolSupport.cancel();
+        // Do not clear the document symbol cache when the view is disposed.
+        // This method is called when switching to another editor.
+        // Clearing the cache at this point would cause the document symbols to be reloaded every time the editor is reopened, which is not performance-efficient.
+        // The document symbol cache should only be invalidated when the file content changes, not when switching between editors.
+        // LSPDocumentSymbolSupport documentSymbolSupport = LSPFileSupport.getSupport(psiFile).getDocumentSymbolSupport();
+        // documentSymbolSupport.cancel();
     }
 
     static class LSPFileStructureViewElement extends PsiTreeElementBase<PsiFile> {
@@ -72,14 +77,17 @@ public class LSPDocumentSymbolStructureViewModel extends StructureViewModelBase 
 
         @Override
         public @NotNull Collection<StructureViewTreeElement> getChildrenBase() {
-            return collectElements(getElement());
+            PsiFile file = getElement();
+            return file != null ? collectElements(file) : Collections.emptyList();
         }
 
         private @NotNull Collection<StructureViewTreeElement> collectElements(@NotNull PsiFile psiFile) {
-            if(ProjectIndexingManager.getInstance(psiFile.getProject()).isIndexingAll()) {
+            if (ProjectIndexingManager.isIndexingAll()) {
                 return Collections.emptyList();
             }
-            LSPDocumentSymbolSupport documentSymbolSupport = LSPFileSupport.getSupport(psiFile).getDocumentSymbolSupport();
+
+            LSPFileSupport fileSupport = LSPFileSupport.getSupport(psiFile);
+            LSPDocumentSymbolSupport documentSymbolSupport = fileSupport.getDocumentSymbolSupport();
             var params = new DocumentSymbolParams(LSPIJUtils.toTextDocumentIdentifier(psiFile.getVirtualFile()));
             var documentSymbolFuture = documentSymbolSupport.getDocumentSymbols(params);
             try {
@@ -101,7 +109,7 @@ public class LSPDocumentSymbolStructureViewModel extends StructureViewModelBase 
                     return Collections.emptyList();
                 }
                 return documentSymbols.stream()
-                        .map(documentSymbol -> getStructureViewTreeElement(documentSymbol))
+                        .map(LSPDocumentSymbolStructureViewModel::getStructureViewTreeElement)
                         .filter(Objects::nonNull)
                         .toList();
             }
@@ -110,17 +118,20 @@ public class LSPDocumentSymbolStructureViewModel extends StructureViewModelBase 
 
         @Override
         public @Nullable String getPresentableText() {
-            return getElement().getName();
+            PsiFile file = getElement();
+            return file != null ? file.getName() : null;
         }
 
         @Override
         public @Nullable String getLocationString() {
-            return getElement().getVirtualFile().getCanonicalPath();
+            PsiFile file = getElement();
+            return file != null ? file.getVirtualFile().getCanonicalPath() : null;
         }
 
         @Override
         public @Nullable Icon getIcon(boolean unused) {
-            return getElement().getFileType().getIcon();
+            PsiFile file = getElement();
+            return file != null ? file.getFileType().getIcon() : null;
         }
     }
 
@@ -136,19 +147,20 @@ public class LSPDocumentSymbolStructureViewModel extends StructureViewModelBase 
         }
 
         private @NotNull Collection<StructureViewTreeElement> collectElements(@Nullable DocumentSymbolData documentSymbolData) {
-            var children = documentSymbolData.getChildren();
-            if (children.length == 0) {
+            var children = documentSymbolData != null ? documentSymbolData.getChildren() : null;
+            if (ArrayUtil.isEmpty(children)) {
                 return Collections.emptyList();
             }
             return Stream.of(children)
-                    .map(child -> getStructureViewTreeElement(child))
+                    .map(LSPDocumentSymbolStructureViewModel::getStructureViewTreeElement)
                     .filter(Objects::nonNull)
                     .toList();
         }
 
         @Override
         public @Nullable String getPresentableText() {
-            return getElement().getPresentableText();
+            DocumentSymbolData documentSymbolData = getElement();
+            return documentSymbolData != null ? documentSymbolData.getPresentableText() : null;
         }
     }
 

@@ -48,7 +48,17 @@ dependencies {
         create(properties("platformType"), properties("platformVersion"))
 
         // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
-        bundledPlugins(properties("platformBundledPlugins").map { it.split(',') })
+        // starting from 2024.3, all json related code is know on its own plugin
+        val platformBundledPlugins =  ArrayList<String>()
+        platformBundledPlugins.addAll(properties("platformBundledPlugins").map { it.split(',').map(String::trim).filter(String::isNotEmpty) }.get())
+        /*
+         * platformVersion check for JSON breaking changes since 2024.3
+         */
+        if (prop("platformVersion").startsWith("25")) {
+            platformBundledPlugins.add("com.intellij.modules.json")
+        }
+        println("use bundled Plugins: $platformBundledPlugins")
+        bundledPlugins(platformBundledPlugins)
 
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(properties("platformPlugins").map { it.split(',') })
@@ -110,10 +120,7 @@ intellijPlatform {
 
     publishing {
         token = environment("PUBLISH_TOKEN")
-        // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
-        // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
-        // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
-        channels = properties("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
+        channels = properties("channel").map { listOf(it) }
     }
 
     pluginVerification {

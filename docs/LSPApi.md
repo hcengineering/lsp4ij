@@ -26,6 +26,7 @@ The [LSPClientFeatures](https://github.com/redhat-developer/lsp4ij/blob/main/src
 - [LSP typeDefinition feature](#lsp-typeDefinition-feature)
 - [LSP usage feature](#lsp-usage-feature)
 - [LSP workspace symbol feature](#lsp-workspace-symbol-feature)
+- [LSP breadcrumbs feature](#lsp-breadcrumbs-feature)
 - [LSP editor behavior feature](#lsp-editor-behavior-feature)
 - [Language server installer](#language-server-installer)
 
@@ -511,6 +512,115 @@ public class MyLSPSemanticTokensFeature extends LSPSemanticTokensFeature {
 }
 ```
 
+### Semantic Tokens File View Providers
+
+LSP4IJ can help incorporate a file's semantic tokens information so that it's readily available and can be used to
+implement specific behavior based on whether an element is a declaration or reference, string or numeric literal,
+comment, etc., based on the reported semantic tokens. This is implemented via a custom `FileViewProviderFactory` and
+`FileViewProvider`. LSP4IJ includes default implementations of these for TextMate files and plain text files associated
+with abstract files types which otherwise lack PSI element structure, and it provides a simple way for other file types
+to gain access to the same features.
+
+#### LSPSemanticTokensFileViewProviderFactory
+
+Most files use a `SingleRootFileViewProvider`, and those that do can use `LSPSemanticTokensFileViewProviderFactory`.
+If specialized behavior is needed, `LSPSemanticTokensFileViewProviderFactory` can be subclassed and implemented to
+return more complex `LSPSemanticTokensFileViewProvider` implementations as described below.
+
+If the custom LSP integration's files are based on a specific language ID, the factory should be registered in 
+`plugin.xml` using `lang.fileViewProviderFactory` (using the simple factory):
+
+```xml
+<lang.fileViewProviderFactory
+        language="myLanguageId"
+        implementationClass="com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokensFileViewProviderFactory"/>
+```
+
+If its files are not based on specific language ID, it should be registered using `fileType.fileViewProviderFactory`
+(using a custom factory):
+
+```xml
+<fileType.fileViewProviderFactory
+        fileType="myFileTypeName"
+        implementationClass="com.myProduct.semanticTokens.viewProvider.MyCustomSemanticTokensFileViewProviderFactory"/>
+```
+
+#### LSPSemanticTokensFileViewProvider
+
+Files that require something more complex than `SingleRootFileViewProvider` should subclass the required file view
+provider implementation, implement the `LSPSemanticTokensFileViewProvider` interface, create a
+`LSPSemanticTokensFileViewProviderHelper` member variable in the constructor(s), and delegate the
+`LSPSemanticTokensFileViewProvider` interface to the helper, e.g.:
+
+```java
+public class MyCustomSemanticTokensFileViewProvider extends ComplexFileViewProvider implements LSPSemanticTokensFileViewProvider {
+
+    private final LSPSemanticTokensFileViewProviderHelper helper;
+
+    public MyCustomSemanticTokensFileViewProvider(@NotNull PsiManager manager,
+                                                  @NotNull VirtualFile virtualFile,
+                                                  boolean eventSystemEnabled,
+                                                  @NotNull Language language) {
+        super(manager, virtualFile, eventSystemEnabled, language);
+        this.helper = new LSPSemanticTokensFileViewProviderHelper(this);
+    }
+
+    public MyCustomSemanticTokensFileViewProvider(@NotNull PsiManager manager,
+                                                  @NotNull VirtualFile virtualFile,
+                                                  boolean eventSystemEnabled) {
+        super(manager, virtualFile, eventSystemEnabled);
+        this.helper = new LSPSemanticTokensFileViewProviderHelper(this);
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return helper.isEnabled();
+    }
+
+    @Override
+    public boolean isKeyword(int offset) {
+        return helper.isKeyword(offset);
+    }
+
+    // Delegate the rest of the required interface...
+}
+```
+
+#### Declaration Elements
+
+If the JetBrains IDE can determine that an element is a _declaration_, it provides certain standard features, e.g.,
+the **Navigate | Declaration or Usages** action automatically shows usages of the declaration. It is therefore important
+that custom LSP integrations help the IDE determine which elements are declarations. The IDE uses the interface
+`PsiNameIdentifierOwner` and its method `getNameIdentifier()` to determine this. As a result, custom LSP integrations
+with PSI element hierarchies should ensure that the PSI element type that is used for declarations -- even if it's also
+used for non-declarations -- implement that interface and return a non-`null` PSI element from `getNameIdentifier()` for
+declaration elements.
+
+Custom LSP integrations that use a semantic tokens-based file view provider as described above can determine whether or
+not a given semantic token-backed element is a declaration or definition as follows:
+
+```java
+LSPSemanticTokensFileViewProvider fileViewProvider = LSPSemanticTokensFileViewProvider.getInstance(element);
+boolean isDeclaration = (fileViewProvider != null) && fileViewProvider.isDeclaration(element.getTextOffset());
+```
+
+When an element is determined to be for a declaration, `getNameIdentifier()` should return either that entire element, e.g.:
+
+```java
+public class MyPsiElement extends PsiElementBase implements PsiNameIdentifierOwner {
+    // Existing implementation...
+
+    @Override
+    @Nullable
+    public PsiElement getNameIdentifier() {
+        LSPSemanticTokensFileViewProvider fileViewProvider = LSPSemanticTokensFileViewProvider.getInstance(this);
+        return (fileViewProvider != null) && fileViewProvider.isDeclaration(getTextOffset()) ? this : null;
+    }
+}
+```
+
+or, if appropriate, the the child/descendant element that represents the declaration's name identifier.
+
 ## LSP SignatureHelp Feature
 
 | API                               | Description                                                                                                                                                                                                                        | Default Behaviour           |
@@ -540,15 +650,26 @@ public class MyLSPSemanticTokensFeature extends LSPSemanticTokensFeature {
 | boolean isSupported()       | Returns `true` if the LSP feature is supported and `false` otherwise. <br/>This supported state is called after starting the language server, which matches the LSP server capabilities. | Check the server capability            |
 | boolean supportsGotoClass() | Returns `true` if the LSP feature is efficient enough to support the IDE's Go To Class action which may be invoked frequently and `false` otherwise.                                     | `false`                                |
 
+## LSP Breadcrumbs Feature
+
+Unlike most features above, `LSPBreadcrumbsFeature` does **not** correspond directly to an LSP feature, but it does build upon `LSPDocumentSymbolFeature` to add breadcrumbs and sticky lines behavior to the IDE. It is _enabled by default_ for all language server definitions except for the HTML and XML language server definition templates. Those implementing custom language server integrations can opt out of these features if desired by overriding the respective methods listed below.
+
+| API                             | Description                                                                                                  | Default Behaviour |
+|---------------------------------|--------------------------------------------------------------------------------------------------------------|-------------------|
+| boolean isEnabled(PsiFile file) | Returns `true` if the the document symbols-based breadcrumbs info provider is enabled and `false` otherwise. | `true`            |
+=======
+
 ## LSP Editor Behavior Feature
 
-Unlike the features above, `LSPEditorFeature` does **not** correspond to an LSP feature. Instead it represents IDE editor behavior features, enhancements, and fixes that, alongside the language server-provided features, help provide an optimal editor experience for LSP4IJ-integrated file types. Note that these features are _disabled by default_ for `LanguageServerDefinition` and _enabled by default_ for `UserDefinedLanguageServerDefinition`. Those implementing custom language server integrations can opt into these features if desired by overriding the respective methods listed below.
+Unlike most features above, `LSPEditorFeature` does **not** correspond to an LSP feature. Instead it represents IDE editor behavior features, enhancements, and fixes that, alongside the language server-provided features, help provide an optimal editor experience for LSP4IJ-integrated file types. Note that these features are _disabled by default_ for `LanguageServerDefinition` and _enabled by default_ for `UserDefinedLanguageServerDefinition`. Those implementing custom language server integrations can opt into these features if desired by overriding the respective methods listed below.
 
-| API                                                           | Description                                                                                                                     | Default Behaviour                                                      |
-|---------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| boolean isEnableStringLiteralImprovements(PsiFile file)       | Returns `true` if editor improvements for string literals are enabled and `false` otherwise.                                    | `true` for user-defined language server definitions; otherwise `false` |
-| boolean isEnableStatementTerminatorImprovements(PsiFile file) | Returns `true` if editor improvements for statement terminators are enabled and `false` otherwise.                              | `true` for user-defined language server definitions; otherwise `false` |
-| boolean isEnableEnterBetweenBracesFix(PsiFile file)           | Returns `true` if the fix for [IJPL-159454](https://youtrack.jetbrains.com/issue/IJPL-159454) is enabled and `false` otherwise. | `true` for user-defined language server definitions; otherwise `false` |
+| API                                                            | Description                                                                                                                       | Default Behaviour                                                                                    |
+|----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| boolean isEnableStringLiteralImprovements(PsiFile file)        | Returns `true` if editor improvements for string literals are enabled and `false` otherwise.                                      | `true` for user-defined language server definitions; otherwise `false`                               |
+| boolean isEnableStatementTerminatorImprovements(PsiFile file)  | Returns `true` if editor improvements for statement terminators are enabled and `false` otherwise.                                | `true` for user-defined language server definitions; otherwise `false`                               |
+| boolean isEnableEnterBetweenBracesFix(PsiFile file)            | Returns `true` if the fix for [IJPL-159454](https://youtrack.jetbrains.com/issue/IJPL-159454) is enabled and `false` otherwise.   | `true` for user-defined language server definitions; otherwise `false`                               |
+| boolean isEnableTextMateNestedBracesImprovements(PsiFile file) | Returns `true` if editor improvements for nested braces/brackets/parentheses in TextMate files are enabled and `false` otherwise. | `true` for user-defined language server definitions; otherwise `false`                               |
+| boolean isEnableSemanticTokensFileViewProvider(PsiFile file)   | Returns `true` if the semantic tokens-based file view provider is enabled and `false` otherwise.                                  | `true`, but a file view provider must be registered for non-user-defined language server definitions |
 =======
 
 ## Language server installer

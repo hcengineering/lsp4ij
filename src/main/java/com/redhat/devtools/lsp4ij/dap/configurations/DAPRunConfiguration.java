@@ -13,28 +13,29 @@ package com.redhat.devtools.lsp4ij.dap.configurations;
 import com.intellij.execution.Executor;
 import com.intellij.execution.configurations.*;
 import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.lang.Language;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.redhat.devtools.lsp4ij.LSPIJUtils;
-import com.redhat.devtools.lsp4ij.dap.DebugServerWaitStrategy;
 import com.redhat.devtools.lsp4ij.dap.DebugMode;
+import com.redhat.devtools.lsp4ij.dap.DebugServerWaitStrategy;
+import com.redhat.devtools.lsp4ij.dap.configurations.options.FileOptionConfigurable;
+import com.redhat.devtools.lsp4ij.dap.configurations.options.WorkingDirectoryConfigurable;
+import com.redhat.devtools.lsp4ij.dap.definitions.DebugAdapterServerDefinition;
 import com.redhat.devtools.lsp4ij.dap.descriptors.DebugAdapterDescriptor;
 import com.redhat.devtools.lsp4ij.dap.descriptors.DebugAdapterDescriptorFactory;
+import com.redhat.devtools.lsp4ij.dap.descriptors.DefaultDebugAdapterDescriptor;
 import com.redhat.devtools.lsp4ij.internal.StringUtils;
 import com.redhat.devtools.lsp4ij.launching.ServerMappingSettings;
 import com.redhat.devtools.lsp4ij.settings.ServerTrace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.jps.model.fileTypes.FileNameMatcherFactory;
 
 import java.util.List;
 
 /**
  * Debug Adapter Protocol (DAP) run configuration.
  */
-public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfigurationOptions> {
+public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfigurationOptions> implements FileOptionConfigurable, WorkingDirectoryConfigurable, DebuggableFile {
 
     public static final String DEBUG_ADAPTER_CONFIGURATION = "Debug Adapter Configuration";
 
@@ -122,6 +123,22 @@ public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfiguratio
         getOptions().setDebugServerReadyPattern(debugServerReadyPattern);
     }
 
+    public String getAttachAddress() {
+        return getOptions().getAttachAddress();
+    }
+
+    public void setAttachAddress(String attachAddress) {
+        getOptions().setAttachAddress(attachAddress);
+    }
+
+    public String getAttachPort() {
+        return getOptions().getAttachPort();
+    }
+
+    public void setAttachPort(String attachPort) {
+        getOptions().setAttachPort(attachPort);
+    }
+    
     public ServerTrace getServerTrace() {
         return getOptions().getServerTrace();
     }
@@ -143,19 +160,23 @@ public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfiguratio
 
     // Configuration settings
 
-    public String getWorkingDirectory() {
+    @Override
+    public @Nullable String getWorkingDirectory() {
         return getOptions().getWorkingDirectory();
     }
 
-    public void setWorkingDirectory(String workingDirectory) {
+    @Override
+    public void setWorkingDirectory(@Nullable String workingDirectory) {
         getOptions().setWorkingDirectory(workingDirectory);
     }
 
-    public String getFile() {
+    @Override
+    public @Nullable String getFile() {
         return getOptions().getFile();
     }
 
-    public void setFile(String file) {
+    @Override
+    public void setFile(@Nullable String file) {
         getOptions().setFile(file);
     }
     
@@ -212,48 +233,16 @@ public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfiguratio
     @Override
     public RunProfileState getState(@NotNull Executor executor,
                                     @NotNull ExecutionEnvironment environment) {
-        var serverFactory = getServerFactory();
-        DebugAdapterDescriptor serverDescriptor = serverFactory != null ?
-                serverFactory.createDebugAdapterDescriptor(getOptions(), environment) :
-                new DebugAdapterDescriptor(getOptions(), environment, null);
+        var debugAdapterServer = getDebugAdapterServer();
+        DebugAdapterDescriptor serverDescriptor = debugAdapterServer != null ?
+                debugAdapterServer.getFactory().createDebugAdapterDescriptor(getOptions(), environment) :
+                new DefaultDebugAdapterDescriptor(getOptions(), environment, null);
         return new DAPCommandLineState(serverDescriptor, getOptions(), environment);
     }
 
-    /**
-     * Returns true if the given file can be debugged (to add/remove breakpoints) and false otherwise.
-     *
-     * @param file the file to debug.
-     * @return true if the given file can be debugged (to add/remove breakpoints) and false otherwise.
-     */
-    public boolean canDebug(@NotNull VirtualFile file) {
-        // Match mappings?
-        for (var mapping : getServerMappings()) {
-            // Match file type?
-            String fileType = mapping.getFileType();
-            if (StringUtils.isNotBlank(fileType)) {
-                if (fileType.equals(file.getFileType().getName())) {
-                    return true;
-                }
-            }
-            // Match file name patterns?
-            if (mapping.getFileNamePatterns() != null) {
-                for (var pattern : mapping.getFileNamePatterns()) {
-                    var p = FileNameMatcherFactory.getInstance().createMatcher(pattern);
-                    if (p.acceptsCharSequence(file.getName())) {
-                        return true;
-                    }
-                }
-            }
-            // Match language?
-            String language = mapping.getLanguage();
-            if (StringUtils.isNotBlank(language)) {
-                Language fileLanguage = LSPIJUtils.getFileLanguage(file, getProject());
-                if (fileLanguage != null && language.equals(fileLanguage.getID())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    @Override
+    public boolean isDebuggableFile(@NotNull VirtualFile file, @NotNull Project project) {
+        return getOptions().isDebuggableFile(file, project);
     }
 
     /**
@@ -280,8 +269,14 @@ public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfiguratio
      * @return the server DAP factory descriptor and null otherwise.
      */
     @Nullable
-    public DebugAdapterDescriptorFactory getServerFactory() {
-        return getOptions().getServerFactory();
+    private DebugAdapterDescriptorFactory getServerFactory() {
+        var server = getDebugAdapterServer();
+        return server != null ? server.getFactory() : null;
+    }
+
+    @Nullable
+    private DebugAdapterServerDefinition getDebugAdapterServer() {
+        return getOptions().getDebugAdapterServer();
     }
 
     /**
@@ -307,6 +302,8 @@ public class DAPRunConfiguration extends RunConfigurationBase<DAPRunConfiguratio
         configuration.setDebugServerWaitStrategy(getDebugServerWaitStrategy());
         configuration.setConnectTimeout(getConnectTimeout());
         configuration.setDebugServerReadyPattern(getDebugServerReadyPattern());
+        configuration.setAttachAddress(getAttachAddress());
+        configuration.setAttachPort(getAttachPort());
         configuration.setServerTrace(getServerTrace());
     }
 

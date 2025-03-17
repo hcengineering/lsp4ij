@@ -55,6 +55,7 @@ You can find more documentation in:
 ## Articles
 
  * [Meet LSP4IJ, a new LSP Client for JetBrains-based IDEs](https://idetools.dev/blog/lsp4ij-announcement/)
+ * [Meet LSP4IJ, a new Debug Adapter Protocol for JetBrains-based IDEs](https://idetools.dev/blog/lsp4ij-dap-announcement/)
 
 ## Who is using LSP4IJ?
 
@@ -77,10 +78,13 @@ Here are some projects that use LSP4IJ:
  * [Jimmer DTO LSP](https://github.com/Enaium/jimmer-dto-lsp)
  * [Qt Tools for Android Studio](https://code.qt.io/cgit/qt-labs/android-studio-tools.git/)
  * [Clojure LSP Intellij](https://github.com/clojure-lsp/clojure-lsp-intellij)
+ * [GroovyScript for IntelliJ](https://github.com/IntegerLimit/GroovyScriptPlugin)
+ * [Redscript Intellij](https://github.com/pawrequest/redscript-intellij)
+ * [AngelScript Language Server for IntelliJ](https://github.com/pawrequest/redscript-intellij)
 
 ## Requirements
 
-* Intellij IDEA 2023.2 or more recent (we **try** to support the last 4 major IDEA releases)
+* Intellij IDEA 2023.3 or more recent (we **try** to support the last 4 major IDEA releases)
 * Java JDK (or JRE) 17 or more recent
 
 ## Contributing

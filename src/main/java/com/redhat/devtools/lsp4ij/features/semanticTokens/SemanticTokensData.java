@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 Red Hat, Inc.
+ * Copyright (c) 2024-2025 Red Hat, Inc.
  * Distributed under license by Red Hat, Inc. All rights reserved.
  * This program is made available under the terms of the
  * Eclipse Public License v2.0 which accompanies this distribution,
@@ -7,6 +7,7 @@
  *
  * Contributors:
  * Red Hat, Inc. - initial API and implementation
+ * FalsePattern - Performance improvements for huge files
  ******************************************************************************/
 package com.redhat.devtools.lsp4ij.features.semanticTokens;
 
@@ -14,23 +15,21 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.lsp4ij.features.semanticTokens.inspector.SemanticTokensHighlightInfo;
-import com.redhat.devtools.lsp4ij.features.semanticTokens.inspector.SemanticTokensInspectorManager;
 import com.redhat.devtools.lsp4ij.features.semanticTokens.inspector.SemanticTokensInspectorData;
+import com.redhat.devtools.lsp4ij.features.semanticTokens.inspector.SemanticTokensInspectorManager;
+import com.redhat.devtools.lsp4ij.features.semanticTokens.viewProvider.LSPSemanticTokensFileViewProvider;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensLegend;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
-
-import static com.intellij.codeHighlighting.RainbowHighlighter.RAINBOW_ELEMENT;
 
 /**
  * Semantic data.
@@ -60,10 +59,12 @@ public class SemanticTokensData {
      * @param document the document.
      * @param addInfo  callback to collect {@link HighlightInfo} created from the semantic tokens data.
      */
-    @Nullable
     public void highlight(@NotNull PsiFile file,
                           @NotNull Document document,
-                          @NotNull Consumer<HighlightInfo> addInfo) {
+                          @NotNull LazyHighlightInfo.Consumer addInfo) {
+        // Try to populate the file's view provider with these tokens if possible
+        LSPSemanticTokensFileViewProvider semanticTokensFileViewProvider = LSPSemanticTokensFileViewProvider.getInstance(file);
+
         var inspector = SemanticTokensInspectorManager.getInstance(file.getProject());
         boolean notifyInspector = inspector.hasSemanticTokensInspectorListener();
         List<SemanticTokensHighlightInfo> highlightInfos = notifyInspector ? new ArrayList<>() : null;
@@ -80,9 +81,14 @@ public class SemanticTokensData {
             int offset = 0;
             int length = 0;
             String tokenType = null;
+            int cancelCounter = 0;
             for (Integer data : dataStream) {
                 // Cancel LSP semantic tokens support as soon as possible.
-                ProgressManager.checkCanceled();
+                cancelCounter++;
+                if (cancelCounter >= 100) {
+                    cancelCounter = 0;
+                    ProgressManager.checkCanceled();
+                }
 
                 switch (idx % 5) {
                     case 0: // line
@@ -109,12 +115,12 @@ public class SemanticTokensData {
                         int end = offset + length;
                         TextAttributesKey colorKey = tokenType != null ? semanticTokensColorsProvider.getTextAttributesKey(tokenType, tokenModifiers, file) : null;
                         if (colorKey != null) {
-                            HighlightInfo highlightInfo = HighlightInfo
-                                    .newHighlightInfo(RAINBOW_ELEMENT)
-                                    .range(start, end)
-                                    .textAttributes(colorKey)
-                                    .create();
-                            addInfo.accept(highlightInfo);
+                            addInfo.accept(start, end, colorKey);
+                        }
+
+                        // If this file uses a view provider based on semantic tokens, add this one
+                        if (semanticTokensFileViewProvider != null) {
+                            semanticTokensFileViewProvider.addSemanticToken(TextRange.create(start, end), tokenType, tokenModifiers);
                         }
 
                         if (notifyInspector) {

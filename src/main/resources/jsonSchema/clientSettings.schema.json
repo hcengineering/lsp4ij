@@ -54,6 +54,19 @@
         }
       }
     },
+    "breadcrumbs": {
+      "type": "object",
+      "title": "Breadcrumbs feature configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enable breadcrumbs",
+          "description": "Whether or not document symbols-based breadcrumbs info provider is enabled.",
+          "default": true
+        }
+      }
+    },
     "editor": {
       "type": "object",
       "title": "Client-side editor behavior configuration",
@@ -75,6 +88,18 @@
           "type": "boolean",
           "title": "Enable enter-between-braces fix",
           "description": "Whether or not the fix for enter-between-braces behavior in TextMate and abstract file type files is enabled.",
+          "default": true
+        },
+        "enableTextMateNestedBracesImprovements": {
+          "type": "boolean",
+          "title": "Enable TextMate nested braces fix",
+          "description": "Whether or not editor improvements for nested braces/brackets/parentheses in TextMate files are enabled.",
+          "default": true
+        },
+        "enableSemanticTokensFileViewProvider": {
+          "type": "boolean",
+          "title": "Enable semantic tokens-based file view provider",
+          "description": "Whether or not the semantic tokens-based file view provider is enabled.",
           "default": true
         }
       }

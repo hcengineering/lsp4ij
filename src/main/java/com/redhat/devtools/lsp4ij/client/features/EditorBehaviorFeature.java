@@ -86,6 +86,30 @@ public class EditorBehaviorFeature {
         return false;
     }
 
+    /**
+     * Whether or not editor improvements for nested braces/brackets/parentheses in TextMate files are enabled.
+     * Defaults to false.
+     *
+     * @param file the file
+     * @return true if editor improvements for nested braces/brackets/parentheses in TextMate files are enabled;
+     * otherwise false
+     */
+    public boolean isEnableTextMateNestedBracesImprovements(@NotNull PsiFile file) {
+        // Default to disabled
+        return false;
+    }
+
+    /**
+     * Whether or not the semantic tokens-based file view provider is enabled.
+     *
+     * @param file the file
+     * @return true if the semantic tokens-based file view provider is enabled; otherwise false
+     */
+    public boolean isEnableSemanticTokensFileViewProvider(@NotNull PsiFile file) {
+        // Default to enabled, but a file view provider must be registered for the provided file to be truly enabled
+        return true;
+    }
+
     // Utility methods to check the state of these feature flags easily
 
     /**
@@ -127,6 +151,34 @@ public class EditorBehaviorFeature {
         return LanguageServiceAccessor.getInstance(file.getProject()).hasAny(
                 file.getVirtualFile(),
                 ls -> ls.getClientFeatures().getEditorBehaviorFeature().isEnableEnterBetweenBracesFix(file)
+        );
+    }
+
+    /**
+     * Determines whether or not editor improvements for nested braces/brackets/parentheses in TextMate files are
+     * enabled for the specified file.
+     *
+     * @param file the PSI file
+     * @return true if editor improvements for nested braces/brackets/parentheses in TextMate files are enabled by at
+     * least one language server for the file; otherwise false
+     */
+    public static boolean enableTextMateNestedBracesImprovements(@NotNull PsiFile file) {
+        return LanguageServiceAccessor.getInstance(file.getProject()).hasAny(
+                file.getVirtualFile(),
+                ls -> ls.getClientFeatures().getEditorBehaviorFeature().isEnableTextMateNestedBracesImprovements(file)
+        );
+    }
+
+    /**
+     * Whether or not the semantic tokens-based file view provider is enabled.
+     *
+     * @param file the PSI file
+     * @return true if the semantic tokens-based file view provider is enabled; otherwise false
+     */
+    public static boolean enableSemanticTokensFileViewProvider(@NotNull PsiFile file) {
+        return LanguageServiceAccessor.getInstance(file.getProject()).hasAny(
+                file.getVirtualFile(),
+                ls -> ls.getClientFeatures().getEditorBehaviorFeature().isEnableSemanticTokensFileViewProvider(file)
         );
     }
 }

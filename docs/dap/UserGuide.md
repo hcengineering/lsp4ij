@@ -2,12 +2,14 @@
 
 LSP4IJ provides [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) support. 
 You can read [the DAP Support overview](./DAPSupport.md), describing which DAP features are implemented, and how.
+If you need to customize the DAP support you can [register your DAP server with extension point](./DeveloperGuide.md).
 
 The DAP support is available with the `Debug Adapter Protocol` run/debug configuration type:
 
 ![DAP Configuration Type](./images/DAP_config_type.png)
 
-After configuring the [DAP configuration type](#dap-configuration-type), you can debug your file.  
+After configuring the [DAP configuration type](#dap-configuration-type), you can debug your file.
+
 Here is an example with `JavaScript debugging`, which uses the [VSCode JS Debug DAP server](./user-defined-dap/vscode-js-debug.md):
 
 ![DAP Configuration Type](./images/DAP_debugging_overview.png)
@@ -96,5 +98,6 @@ LSP4IJ provides DAP templates that allow to initialize a given DAP server very q
 
 - [Go Delve DAP server](./user-defined-dap/go-delve.md) which allows you to debug `Go` files.
 - [Julia DAP server](./user-defined-dap/julia.md) which allows you to debug `Julia` files. 
+- [Python Debugpy DAP server](./user-defined-dap/python-debugpy.md) which allows you to debug `Python` files.
 - [Swift DAP Server](./user-defined-dap/swift-lldb.md) which allows you to debug `Swift` files.
 - [VSCode JS Debug DAP Server](./user-defined-dap/vscode-js-debug.md) which allows you to debug `JavaScript/TypeScript` files.
