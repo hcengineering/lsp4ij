@@ -77,6 +77,9 @@ public class LSPDiagnosticsForServer {
         List<Diagnostic> sortedDiagnostics = diagnostics
                 .stream()
                 .sorted((d1, d2) -> {
+                    if (d1.getRange().equals(d2.getRange())) {
+                        return 0;
+                    }
                     if (Ranges.containsRange(d1.getRange(), d2.getRange())) {
                         return -1;
                     }
