@@ -150,6 +150,7 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
             if (part.getValue().isEmpty()) {
                 LOGGER.warn("Empty inlay hint label part");
                 index++;
+                continue;
             }
             var info = buildSingleInlayHint(psiFile, hintData, index, part);
             builds.add(info.build);
