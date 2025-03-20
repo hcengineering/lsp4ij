@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.SmartPointerManager;
 import com.redhat.devtools.lsp4ij.LSPFileSupport;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.lsp4ij.LanguageServerItem;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static com.redhat.devtools.lsp4ij.features.LSPPsiElementFactory.toPsiElement;
 import static com.redhat.devtools.lsp4ij.internal.CompletableFutures.isDoneNormally;
 import static com.redhat.devtools.lsp4ij.internal.CompletableFutures.waitUntilDone;
 
@@ -186,12 +188,21 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
         }
         String text = part.getValue();
         final InlayActionData data;
+        var location = part.getLocation();
         if (hasCommand(part)) {
             // InlayHintLabelPart defines a Command, create a clickable inlay hint
             InlayActionPayload payload = LSPDeclarativeInlayActionHandler.createPayload(psiFile.getProject(), editor -> {
                 executeCommand(psiFile, editor, hintData.languageServer(), hintData.inlayHint(), index);
             });
             data = new InlayActionData(payload, LSPDeclarativeInlayActionHandler.HANDLER_ID);
+        } else if (location != null) {
+            var psiElement = toPsiElement(location, hintData.languageServer().getClientFeatures(), psiFile.getProject());
+            if (psiElement != null) {
+                var pointer = SmartPointerManager.createPointer(psiElement);
+                data = new InlayActionData(new PsiPointerInlayActionPayload(pointer), PsiPointerInlayActionNavigationHandler.HANDLER_ID);
+            } else {
+                data = null;
+            }
         } else {
             data = null;
         }
