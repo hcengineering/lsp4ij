@@ -196,13 +196,8 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
             });
             data = new InlayActionData(payload, LSPDeclarativeInlayActionHandler.HANDLER_ID);
         } else if (location != null) {
-            var psiElement = toPsiElement(location, hintData.languageServer().getClientFeatures(), psiFile.getProject());
-            if (psiElement != null) {
-                var pointer = SmartPointerManager.createPointer(psiElement);
-                data = new InlayActionData(new PsiPointerInlayActionPayload(pointer), PsiPointerInlayActionNavigationHandler.HANDLER_ID);
-            } else {
-                data = null;
-            }
+            InlayActionPayload payload = LSPDeclarativeInlayActionHandler.createNavigationPayload(psiFile.getProject(), location);
+            data = new InlayActionData(payload, LSPDeclarativeInlayActionHandler.HANDLER_ID);
         } else {
             data = null;
         }

@@ -20,6 +20,8 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.SmartPsiElementPointer;
+import com.redhat.devtools.lsp4ij.LSPIJUtils;
+import org.eclipse.lsp4j.Location;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,11 +44,25 @@ public class LSPDeclarativeInlayActionHandler implements InlayActionHandler {
     }
 
     //This is technically a hack, but it seems to be reliable enough for the time being.
-    public static InlayActionPayload createPayload(Project project, Consumer<Editor> callback) {
+    public static InlayActionPayload createPayload(@NotNull Project project, Consumer<Editor> callback) {
         return new PsiPointerInlayActionPayload(new LSPPayloadAction() {
             @Override
             public void onClick(Editor editor) {
                 callback.accept(editor);
+            }
+
+            @Override
+            public @NotNull Project getProject() {
+                return project;
+            }
+        });
+    }
+
+    public static InlayActionPayload createNavigationPayload(@NotNull Project project, Location location) {
+        return new PsiPointerInlayActionPayload(new LSPPayloadAction() {
+            @Override
+            public void onClick(Editor editor) {
+                LSPIJUtils.openInEditor(location, project);
             }
 
             @Override
