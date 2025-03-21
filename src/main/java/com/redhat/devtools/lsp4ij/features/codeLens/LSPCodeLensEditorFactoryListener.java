@@ -75,7 +75,13 @@ public class LSPCodeLensEditorFactoryListener implements EditorFactoryListener {
             context.updateViewportLines(e.getNewRectangle());
 
             // Retrieve the PsiFile and check if code lens data is ready
+            if (editor.getProject() == null) {
+                return;
+            }
             PsiFile file = LSPIJUtils.getPsiFile(editor.getVirtualFile(), editor.getProject());
+            if (file == null) {
+                return;
+            }
             LSPCodeLensSupport codeLensSupport = LSPFileSupport.getSupport(file).getCodeLensSupport();
             var data = codeLensSupport.getFuture();
 

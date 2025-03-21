@@ -547,7 +547,7 @@ public class LanguageServersRegistry {
                     return false;
                 }
                 PsiFile psiFile = LSPIJUtils.getPsiFile(file, project);
-                if (psiFile != null && !psiFile.isPhysical()) {
+                if (psiFile == null || !psiFile.isPhysical()) {
                     return false;
                 }
             }
