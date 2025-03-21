@@ -77,8 +77,10 @@ public class LSPUsagesManager {
                 LSPUsageTriggeredPsiElement element = toUsageTriggeredPsiElement(ref.location(), ref.languageServer().getClientFeatures(), project);
                 if (element != null) {
                     element.setLSPReferences(locations);
+                    if (editor != null) {
+                        GotoDeclarationAction.startFindUsages(editor, element.getProject(), element, event == null ? null : new RelativePoint(event));
+                    }
                 }
-                GotoDeclarationAction.startFindUsages(editor, element.getProject(), element, event == null ? null : new RelativePoint(event));
             }
         }
     }
