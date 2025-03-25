@@ -211,8 +211,8 @@ public class LSPUsageSupport extends AbstractLSPDocumentFeatureSupport<LSPUsageS
 
     private static List<LSPUsagePsiElement> createUsages(@Nullable Either<List<? extends Location>, List<? extends LocationLink>> locations,
                                                          @Nullable FileUriSupport fileUriSupport,
-                                                         @Nullable LSPUsagePsiElement.UsageKind usageKind,
-                                                         @Nullable Project project) {
+                                                         @NotNull LSPUsagePsiElement.UsageKind usageKind,
+                                                         @NotNull Project project) {
         if (locations == null) {
             return Collections.emptyList();
         }
