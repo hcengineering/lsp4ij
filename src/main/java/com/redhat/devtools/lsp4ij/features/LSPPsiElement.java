@@ -52,9 +52,8 @@ public class LSPPsiElement extends FakePsiElement {
         return file;
     }
 
-    @Nullable
     @Override
-    public TextRange getTextRange() {
+    public @NotNull TextRange getTextRange() {
         return textRange;
     }
 
@@ -92,8 +91,7 @@ public class LSPPsiElement extends FakePsiElement {
         return this;
     }
 
-    @NotNull
-    public char[] textToCharArray() {
+    public char @NotNull [] textToCharArray() {
         return getName().toCharArray();
     }
 
