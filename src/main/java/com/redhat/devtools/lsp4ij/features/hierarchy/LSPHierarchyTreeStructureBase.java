@@ -72,7 +72,7 @@ public abstract class LSPHierarchyTreeStructureBase<T> extends HierarchyTreeStru
     }
 
     @Nullable
-    protected PsiElement createPsiElement(@Nullable String uri,
+    protected PsiElement createPsiElement(@NotNull String uri,
                                           @Nullable Range range,
                                           @NotNull String name,
                                           @Nullable FileUriSupport fileUriSupport) {
