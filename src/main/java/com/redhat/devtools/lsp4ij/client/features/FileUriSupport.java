@@ -25,7 +25,7 @@ public interface FileUriSupport {
     public static final FileUriSupport DEFAULT = new FileUriSupport() {
 
         @Override
-        public @Nullable URI getFileUri(@NotNull VirtualFile file) {
+        public @NotNull URI getFileUri(@NotNull VirtualFile file) {
             return LSPIJUtils.toUri(file);
         }
 
@@ -51,14 +51,14 @@ public interface FileUriSupport {
     @Nullable
     VirtualFile findFileByUri(@NotNull String fileUri);
 
-    @Nullable
+    @NotNull
     public static URI getFileUri(@NotNull VirtualFile file,
                                  @Nullable FileUriSupport fileUriSupport) {
         URI fileUri = fileUriSupport != null ? fileUriSupport.getFileUri(file) : null;
         if (fileUri != null) {
             return fileUri;
         }
-        return DEFAULT.getFileUri(file);
+        return LSPIJUtils.toUri(file);
     }
 
     @Nullable
