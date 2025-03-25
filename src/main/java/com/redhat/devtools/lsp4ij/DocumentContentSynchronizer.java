@@ -45,7 +45,7 @@ public class DocumentContentSynchronizer implements DocumentListener {
 
     private int version = 0;
     private final List<TextDocumentContentChangeEvent> changeEvents;
-    @NotNull private CompletableFuture<Void> didOpenFuture;
+    private @Nullable CompletableFuture<Void> didOpenFuture;
 
     public DocumentContentSynchronizer(@NotNull LanguageServerWrapper languageServerWrapper,
                                        @NotNull String fileUri,

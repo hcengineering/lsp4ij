@@ -67,6 +67,9 @@ public class LSPDiagnosticAnnotator extends AbstractLSPExternalAnnotator<Boolean
         }
         URI fileUri = LSPIJUtils.toUri(file);
         Document document = LSPIJUtils.getDocument(file.getVirtualFile());
+        if (document == null) {
+            return;
+        }
 
         // Loop for language server which report diagnostics for the given file
         var servers = LanguageServiceAccessor.getInstance(file.getProject())
@@ -87,7 +90,7 @@ public class LSPDiagnosticAnnotator extends AbstractLSPExternalAnnotator<Boolean
 
     private static void createAnnotation(@NotNull Diagnostic diagnostic,
                                          @NotNull Document document,
-                                         @Nullable PsiFile file,
+                                         @NotNull PsiFile file,
                                          @NotNull LSPDiagnosticsForServer diagnosticsForServer,
                                          @NotNull AnnotationHolder holder) {
         var clientFeatures = diagnosticsForServer.getClientFeatures();

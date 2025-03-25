@@ -180,10 +180,8 @@ public class LSPFormattingSupport extends AbstractLSPDocumentFeatureSupport<LSPF
             options.setInsertSpaces(insertSpaces);
         }
         params.setOptions(options);
-        if (document != null) {
-            Range range = LSPIJUtils.toRange(textRange, document);
-            params.setRange(range);
-        }
+        Range range = LSPIJUtils.toRange(textRange, document);
+        params.setRange(range);
         return params;
     }
 }

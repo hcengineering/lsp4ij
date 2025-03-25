@@ -145,26 +145,28 @@ public class LSPLazyCodeActionIntentionAction implements IntentionAction {
         }
         // Try to get the LSP code action from the given index
         var currentAction = this.action = lazyCodeActions.getCodeActionAt(index);
-        if (isValidCodeAction(currentAction)) {
-            var codeActionFeature = getLanguageServer(currentAction).getClientFeatures().getCodeActionFeature();
-            var action = currentAction.getLeft().codeAction();
-            if (action.isRight()) {
-                codeAction = action.getRight();
-                title = codeActionFeature.getText(codeAction);
-                if (title != null) {
-                    familyName = codeActionFeature.getFamilyName(codeAction);
-                }
-            } else if (action.isLeft()) {
-                command = action.getLeft();
-                title = codeActionFeature.getText(command);
-                if (title != null) {
-                    familyName = codeActionFeature.getFamilyName(command);
-                }
+        var languageServer = getLanguageServer(currentAction);
+        if (languageServer == null) {
+            return;
+        }
+        var codeActionFeature = languageServer.getClientFeatures().getCodeActionFeature();
+        var action = currentAction.getLeft().codeAction();
+        if (action.isRight()) {
+            codeAction = action.getRight();
+            title = codeActionFeature.getText(codeAction);
+            if (title != null) {
+                familyName = codeActionFeature.getFamilyName(codeAction);
             }
-            if (title == null) {
-                // The LSP code action feature returns null, ignore the code action
-                this.action = Either.forRight(Boolean.FALSE);
+        } else if (action.isLeft()) {
+            command = action.getLeft();
+            title = codeActionFeature.getText(command);
+            if (title != null) {
+                familyName = codeActionFeature.getFamilyName(command);
             }
+        }
+        if (title == null) {
+            // The LSP code action feature returns null, ignore the code action
+            this.action = Either.forRight(Boolean.FALSE);
         }
     }
 

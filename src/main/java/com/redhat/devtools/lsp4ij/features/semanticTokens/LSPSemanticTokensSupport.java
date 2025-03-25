@@ -73,7 +73,6 @@ public class LSPSemanticTokensSupport extends AbstractLSPDocumentFeatureSupport<
                     List<CompletableFuture<SemanticTokensData>> semanticTokensPerServerFutures = languageServers
                             .stream()
                             .map(languageServer -> getSemanticTokensFor(params, file, languageServer, cancellationSupport))
-                            .filter(Objects::nonNull)
                             .toList();
 
                     // Merge list of textDocument/foldingRange future in one future which return the list of folding ranges

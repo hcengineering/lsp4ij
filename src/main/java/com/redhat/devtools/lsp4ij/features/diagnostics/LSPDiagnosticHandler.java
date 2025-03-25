@@ -53,7 +53,7 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
     @Override
     public void accept(PublishDiagnosticsParams params) {
         Project project = languageServerWrapper.getProject();
-        if (project == null || project.isDisposed()) {
+        if (project.isDisposed()) {
             return;
         }
         if (ApplicationManager.getApplication().isReadAccessAllowed()) {
