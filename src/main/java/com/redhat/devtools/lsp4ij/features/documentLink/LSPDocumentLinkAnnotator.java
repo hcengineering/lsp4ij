@@ -93,8 +93,8 @@ public class LSPDocumentLinkAnnotator extends AbstractLSPExternalAnnotator<List<
     }
 
     @Override
-    public void doApply(@NotNull PsiFile file, @NotNull List<DocumentLinkData> documentLinks, @NotNull AnnotationHolder holder) {
-        if (documentLinks.isEmpty()) {
+    public void doApply(@NotNull PsiFile file, @Nullable List<DocumentLinkData> documentLinks, @NotNull AnnotationHolder holder) {
+        if (documentLinks == null || documentLinks.isEmpty()) {
             return;
         }
         Document document = LSPIJUtils.getDocument(file.getVirtualFile());
