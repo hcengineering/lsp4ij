@@ -610,7 +610,7 @@ public class LSPIJUtils {
             return null;
         }
         VirtualFile documentFile = findResourceFor(documentUri.toASCIIString());
-        return getDocument(documentFile);
+        return documentFile != null ? getDocument(documentFile) : null;
     }
 
     @Nullable
