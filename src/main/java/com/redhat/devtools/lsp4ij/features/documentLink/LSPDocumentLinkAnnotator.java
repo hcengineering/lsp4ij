@@ -98,6 +98,9 @@ public class LSPDocumentLinkAnnotator extends AbstractLSPExternalAnnotator<List<
             return;
         }
         Document document = LSPIJUtils.getDocument(file.getVirtualFile());
+        if (document == null) {
+            return;
+        }
         for (var documentLink : documentLinks) {
             TextRange range = LSPIJUtils.toTextRange(documentLink.documentLink().getRange(), document);
             if (range != null) {

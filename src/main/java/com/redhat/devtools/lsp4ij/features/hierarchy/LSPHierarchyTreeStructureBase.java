@@ -59,7 +59,9 @@ public abstract class LSPHierarchyTreeStructureBase<T> extends HierarchyTreeStru
                     // - prepareTypeHierarchy
                     int offset = element.getTextRange().getStartOffset();
                     Document document = LSPIJUtils.getDocument(psiFile.getVirtualFile());
-                    buildRoot(lspDescriptor, psiFile, document, offset, descriptors);
+                    if (document != null) {
+                        buildRoot(lspDescriptor, psiFile, document, offset, descriptors);
+                    }
                 } else {
                     // fill with:
                     // - callHierarchy/incomingCalls / callHierarchy/outgoingCalls

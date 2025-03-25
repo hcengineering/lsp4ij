@@ -67,6 +67,9 @@ public class LSPDiagnosticAnnotator extends AbstractLSPExternalAnnotator<Boolean
         }
         URI fileUri = LSPIJUtils.toUri(file);
         Document document = LSPIJUtils.getDocument(file.getVirtualFile());
+        if (document == null) {
+            return;
+        }
 
         // Loop for language server which report diagnostics for the given file
         var servers = LanguageServiceAccessor.getInstance(file.getProject())
