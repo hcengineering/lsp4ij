@@ -87,7 +87,7 @@ public class LSPDiagnosticAnnotator extends AbstractLSPExternalAnnotator<Boolean
 
     private static void createAnnotation(@NotNull Diagnostic diagnostic,
                                          @NotNull Document document,
-                                         @Nullable PsiFile file,
+                                         @NotNull PsiFile file,
                                          @NotNull LSPDiagnosticsForServer diagnosticsForServer,
                                          @NotNull AnnotationHolder holder) {
         var clientFeatures = diagnosticsForServer.getClientFeatures();
