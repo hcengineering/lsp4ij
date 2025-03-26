@@ -118,19 +118,50 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
                                  @NotNull InlayPosition position,
                                  @NotNull InlayTreeSink sink) {
         elements.forEach(p -> {
-            Either<String, List<InlayHintLabelPart>> label = p.second.inlayHint().getLabel();
+            var inlayHint = p.second.inlayHint();
+            var format = getHintFormat(inlayHint);
+            Either<String, List<InlayHintLabelPart>> label = inlayHint.getLabel();
             if (label.isLeft()) {
-                buildBasicInlayHint(label.getLeft(), position, sink);
+                buildBasicInlayHint(label.getLeft(), format, position, sink);
             } else {
-                buildMultipartInlayHint(psiFile, label.getRight(), p.second, position, sink);
+                buildMultipartInlayHint(psiFile, label.getRight(), p.second, format, position, sink);
             }
         });
     }
 
+    private static @NotNull HintFormat getHintFormat(@NotNull InlayHint inlayHint) {
+        var colorKind = inlayHint.getKind() == InlayHintKind.Parameter ? HintColorKind.Parameter : HintColorKind.Default;
+        var paddingLeft = inlayHint.getPaddingLeft();
+        var paddingRight = inlayHint.getPaddingRight();
+        if (paddingLeft != null || paddingRight != null) {
+            // SplitMargin is available only in Huly Code, use reflection to get it
+            try {
+                var constructor = HintFormat.class.getConstructor(
+                        HintColorKind.class,
+                        HintFontSize.class,
+                        HintMarginPadding.class,
+                        boolean.class,
+                        boolean.class
+                );
+                return constructor.newInstance(
+                        colorKind,
+                        HintFontSize.AsInEditor,
+                        HintMarginPadding.valueOf("SplitMargin"),
+                        paddingLeft != null && paddingLeft,
+                        paddingRight != null && paddingRight
+                );
+            } catch (ReflectiveOperationException | IllegalArgumentException e) {
+                return HintFormat.Companion.getDefault().withColorKind(colorKind);
+            }
+        }
+        return HintFormat.Companion.getDefault().withColorKind(colorKind);
+    }
+
     private void buildBasicInlayHint(@NotNull String label,
+                                     @NotNull HintFormat hintFormat,
                                      @NotNull InlayPosition position,
                                      @NotNull InlayTreeSink sink) {
-        sink.addPresentation(position, null, null, true, builder -> {
+        sink.addPresentation(position, null, null, hintFormat, builder -> {
             builder.text(label, null);
             return null;
         });
@@ -142,6 +173,7 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
     private void buildMultipartInlayHint(@NotNull PsiFile psiFile,
                                          @NotNull List<InlayHintLabelPart> parts,
                                          @NotNull InlayHintData hintData,
+                                         @NotNull HintFormat hintFormat,
                                          @NotNull InlayPosition position,
                                          @NotNull InlayTreeSink sink) {
         int index = 0;
@@ -166,7 +198,7 @@ public class LSPInlayHintsProvider extends AbstractLSPDeclarativeInlayHintsProvi
             index++;
         }
         var tooltipString = hasTooltip ? tooltip.toString() : null;
-        sink.addPresentation(position, null, tooltipString, true, builder -> {
+        sink.addPresentation(position, null, tooltipString, hintFormat, builder -> {
             for (var build: builds) {
                 build.accept(builder);
             }
