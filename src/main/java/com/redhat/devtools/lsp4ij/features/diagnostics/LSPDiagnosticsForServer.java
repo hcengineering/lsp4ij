@@ -23,6 +23,7 @@ import com.redhat.devtools.lsp4ij.features.codeAction.quickfix.LSPLazyCodeAction
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.util.Positions;
 import org.eclipse.lsp4j.util.Ranges;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,13 +78,19 @@ public class LSPDiagnosticsForServer {
         List<Diagnostic> sortedDiagnostics = diagnostics
                 .stream()
                 .sorted((d1, d2) -> {
-                    if (d1.getRange().equals(d2.getRange())) {
-                        return 0;
-                    }
-                    if (Ranges.containsRange(d1.getRange(), d2.getRange())) {
+                    var range1 = d1.getRange();
+                    var range2 = d2.getRange();
+                    if (Ranges.containsRange(range1, range2)) {
                         return -1;
+                    } else if (Ranges.containsRange(range2, range1)) {
+                        return 1;
                     }
-                    return 1;
+                    if (Positions.isBefore(range1.getStart(), range2.getStart())) {
+                        return -1;
+                    } else if (Positions.isBefore(range2.getStart(), range1.getStart())) {
+                        return 1;
+                    }
+                    return 0;
                 })
                 .toList();
         // Group diagnostics by covered range
