@@ -45,9 +45,11 @@ import java.util.function.Consumer;
 public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> {
 
     private final LanguageServerWrapper languageServerWrapper;
+    private final LSPDiagnosticListener listener;
 
     public LSPDiagnosticHandler(LanguageServerWrapper languageServerWrapper) {
         this.languageServerWrapper = languageServerWrapper;
+        this.listener = languageServerWrapper.getProject().getMessageBus().syncPublisher(LSPDiagnosticListener.TOPIC);
     }
 
     @Override
@@ -72,6 +74,7 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
             }
             action.submit(AppExecutorUtil.getAppExecutorService());
         }
+        listener.publishDiagnostics(params);
     }
 
     private void updateDiagnostics(@NotNull PublishDiagnosticsParams params, @NotNull Project project) {
