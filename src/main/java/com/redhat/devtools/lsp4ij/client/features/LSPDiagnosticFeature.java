@@ -29,6 +29,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -252,5 +253,9 @@ public class LSPDiagnosticFeature extends AbstractLSPDocumentFeature {
     @Override
     public void setServerCapabilities(@Nullable ServerCapabilities serverCapabilities) {
         // Do nothing
+    }
+
+    public List<String> getDiskSources() {
+        return Collections.emptyList();
     }
 }

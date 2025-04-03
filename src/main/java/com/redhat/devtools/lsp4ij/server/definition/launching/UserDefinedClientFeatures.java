@@ -33,6 +33,7 @@ public class UserDefinedClientFeatures extends LSPClientFeatures {
         setWorkspaceSymbolFeature(new UserDefinedWorkspaceSymbolFeature());
         setBreadcrumbsFeature(new UserDefinedBreadcrumbsFeature());
         setEditorBehaviorFeature(new UserDefinedEditorBehaviorFeature(this));
+        setDiagnosticFeature(new UserDefinedDiagnosticsFeature());
     }
 
     public boolean isCaseSensitive(@NotNull PsiFile file) {

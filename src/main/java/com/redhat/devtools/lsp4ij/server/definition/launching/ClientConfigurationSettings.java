@@ -18,6 +18,9 @@ import com.redhat.devtools.lsp4ij.client.features.LSPFormattingFeature.Formattin
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Client-side settings for a user-defined language server configuration.
  */
@@ -178,6 +181,13 @@ public class ClientConfigurationSettings {
     }
 
     /**
+     * Client-side diagnostics settings.
+     */
+    public static class ClientConfigurationDiagnosticsSettings {
+        public List<String> diskSources = Collections.emptyList();
+    }
+
+    /**
      * Whether or not the language grammar is case-sensitive. Defaults to false.
      */
     public boolean caseSensitive = false;
@@ -226,4 +236,9 @@ public class ClientConfigurationSettings {
      * Client-side workspace symbol settings.
      */
     public @NotNull ClientConfigurationWorkspaceSymbolSettings workspaceSymbol = new ClientConfigurationWorkspaceSymbolSettings();
+
+    /**
+     * Client-side diagnostics settings.
+     */
+    public @NotNull ClientConfigurationDiagnosticsSettings diagnostics = new ClientConfigurationDiagnosticsSettings();
 }
