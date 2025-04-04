@@ -14,8 +14,11 @@
 package com.redhat.devtools.lsp4ij.features.diagnostics;
 
 import com.intellij.codeInsight.intention.IntentionAction;
+import com.intellij.openapi.editor.event.DocumentEvent;
+import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
+import com.redhat.devtools.lsp4ij.DocumentContentSynchronizer;
 import com.redhat.devtools.lsp4ij.LanguageServerItem;
 import com.redhat.devtools.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.lsp4ij.client.features.LSPClientFeatures;
@@ -40,7 +43,7 @@ import java.util.*;
  *
  * @author Angelo ZERR
  */
-public class LSPDiagnosticsForServer {
+public class LSPDiagnosticsForServer implements DocumentListener {
 
     private record DiagnosticData(Range range, List<Diagnostic> diagnostics) {};
 
@@ -65,13 +68,25 @@ public class LSPDiagnosticsForServer {
      *
      * @param diagnostics the new LSP published diagnosics
      */
-    public void update(List<Diagnostic> diagnostics) {
+    public void update(List<Diagnostic> diagnostics, List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
         // initialize diagnostics map
-        this.diagnostics = toMap(diagnostics, this.diagnostics);
+        this.diagnostics = toMap(diagnostics, this.diagnostics, editsSinceSave);
     }
 
     private Map<Diagnostic, LSPLazyCodeActions> toMap(List<Diagnostic> diagnostics,
-                                                      Map<Diagnostic, LSPLazyCodeActions> existingDiagnostics) {
+                                                      Map<Diagnostic, LSPLazyCodeActions> existingDiagnostics,
+                                                      List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
+        var diskSources = languageServer.getClientFeatures().getDiagnosticFeature().getDiskSources();
+        for (var diagnostic : diagnostics) {
+            var source = diagnostic.getSource();
+            if (source != null && diskSources.contains(source)) {
+                var range = diagnostic.getRange();
+                for (var edit : editsSinceSave) {
+                    range = edit.apply(range);
+                }
+                diagnostic.setRange(range);
+            }
+        }
         // Collect quick fixes from LSP code action
         Map<Diagnostic, LSPLazyCodeActions> map = new HashMap<>(diagnostics.size());
         // Sort diagnostics by range
@@ -173,4 +188,31 @@ public class LSPDiagnosticsForServer {
         return languageServerWrapper.getClientFeatures().getCodeActionFeature().isCodeActionSupported(file);
     }
 
+    @Override
+    public void documentChanged(@NotNull DocumentEvent event) {
+        var invalidatedCodeActions = new HashSet<LSPLazyCodeActions>();
+        var rangeEdit = DocumentContentSynchronizer.RangeEdit.fromDocumentEvent(event);
+        synchronized (diagnostics) {
+            for (var diagnosticEntry : diagnostics.entrySet()) {
+                var diagnostic = diagnosticEntry.getKey();
+                var codeActions = diagnosticEntry.getValue();
+                var range = rangeEdit.apply(diagnostic.getRange());
+                diagnostic.setRange(range);
+                invalidatedCodeActions.add(codeActions);
+            }
+
+            for (var codeAction : invalidatedCodeActions) {
+                codeAction.cancel();
+                var newDiagnostics = new ArrayList<>(codeAction.getDiagnostics());
+                if (!newDiagnostics.isEmpty()) {
+                    var newAction = new LSPLazyCodeActions(newDiagnostics, file, languageServer);
+                    for (var diagnostic : newDiagnostics) {
+                        if (diagnostics.containsKey(diagnostic)) {
+                            diagnostics.put(diagnostic, newAction);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

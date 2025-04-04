@@ -193,4 +193,8 @@ public class LSPLazyCodeActions implements LSPLazyCodeActionProvider {
             lspCodeActionRequest.cancel(true);
         }
     }
+
+    public List<Diagnostic> getDiagnostics() {
+        return diagnostics;
+    }
 }
