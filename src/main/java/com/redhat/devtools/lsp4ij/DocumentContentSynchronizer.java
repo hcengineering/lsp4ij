@@ -19,6 +19,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.util.Positions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,6 +43,7 @@ public class DocumentContentSynchronizer implements DocumentListener {
     private final @NotNull VirtualFile file;
     private final @Nullable String documentText;
     private final @Nullable String languageId;
+    private final @NotNull List<RangeEdit> editsSinceSave;
 
     private int version = 0;
     private final List<TextDocumentContentChangeEvent> changeEvents;
@@ -61,6 +63,7 @@ public class DocumentContentSynchronizer implements DocumentListener {
         this.document = document;
         this.documentText = documentText;
         this.languageId = languageId;
+        this.editsSinceSave = new ArrayList<>(16);
 
         // Initialize LSP change events
         changeEvents = new ArrayList<>();
@@ -111,6 +114,10 @@ public class DocumentContentSynchronizer implements DocumentListener {
     @Override
     public void documentChanged(@NotNull DocumentEvent event) {
         DocumentListener.super.documentChanged(event);
+        var rangeEdit = RangeEdit.fromDocumentEvent(event);
+        synchronized (editsSinceSave) {
+            editsSinceSave.add(rangeEdit);
+        }
         if (syncKind == TextDocumentSyncKind.None) {
             return;
         }
@@ -194,6 +201,9 @@ public class DocumentContentSynchronizer implements DocumentListener {
 
     public void documentSaved() {
         ServerCapabilities serverCapabilities = languageServerWrapper.getServerCapabilities();
+        synchronized (editsSinceSave) {
+            editsSinceSave.clear();
+        }
         if (serverCapabilities != null) {
             Either<TextDocumentSyncKind, TextDocumentSyncOptions> textDocumentSync = serverCapabilities.getTextDocumentSync();
             if (textDocumentSync.isRight() && textDocumentSync.getRight().getSave() == null) {
@@ -241,4 +251,74 @@ public class DocumentContentSynchronizer implements DocumentListener {
         return version;
     }
 
+    public static class RangeEdit {
+        private final @NotNull Position start;
+        private final @NotNull Position oldEnd;
+        private final @NotNull Position newEnd;
+
+        private RangeEdit(@NotNull Position start, @NotNull Position oldEnd, @NotNull Position newEnd) {
+            this.start = start;
+            this.oldEnd = oldEnd;
+            this.newEnd = newEnd;
+        }
+
+        public static @NotNull RangeEdit fromDocumentEvent(@NotNull DocumentEvent event) {
+            var document = event.getDocument();
+            var startOffset = event.getOffset();
+            var newEndOffset = startOffset + event.getNewLength();
+            var startPosition = LSPIJUtils.toPosition(startOffset, document);
+            var oldLine = startPosition.getLine();
+            var oldCharacter = startPosition.getCharacter();
+            var oldFragment = event.getOldFragment();
+            for (int i = 0; i < oldFragment.length(); i++) {
+                if (oldFragment.charAt(i) == '\n') {
+                    oldCharacter = 0;
+                    oldLine++;
+                } else {
+                    oldCharacter++;
+                }
+            }
+            var oldEndPosition = new Position(oldLine, oldCharacter);
+            var newEndPosition = LSPIJUtils.toPosition(newEndOffset, document);
+            return new RangeEdit(startPosition, oldEndPosition, newEndPosition);
+        }
+
+        public boolean isAffected(Range range) {
+            return Positions.isBefore(start, range.getEnd());
+        }
+
+        private @NotNull Position toNewPosition(@NotNull Position oldPosition) {
+            if (oldPosition.getLine() == oldEnd.getLine()) {
+                var charDiff = oldPosition.getCharacter() - oldEnd.getCharacter();
+                return new Position(newEnd.getLine(), newEnd.getCharacter() + charDiff);
+            } else {
+                var lineDiff = oldPosition.getLine() - oldEnd.getLine();
+                return new Position(newEnd.getLine() + lineDiff, oldPosition.getCharacter());
+            }
+        }
+
+        public @NotNull Range apply(@NotNull Range range) {
+            if (!isAffected(range)) {
+                return range;
+            }
+            if (Positions.isBefore(oldEnd, range.getStart()) || oldEnd.equals(range.getStart())) {
+                var newStart = toNewPosition(range.getStart());
+                var newEnd = toNewPosition(range.getEnd());
+                return new Range(newStart, newEnd);
+            }
+            Position newStart = start;
+            if (Positions.isBefore(range.getStart(), start)) {
+                newStart = range.getStart();
+            }
+            if (Positions.isBefore(oldEnd, range.getEnd()) || oldEnd.equals(range.getEnd())) {
+                var newEnd = toNewPosition(range.getEnd());
+                return new Range(newStart, newEnd);
+            }
+            return new Range(newStart, start);
+        }
+    }
+
+    public @NotNull List<RangeEdit> getEditsSinceSave() {
+        return editsSinceSave;
+    }
 }

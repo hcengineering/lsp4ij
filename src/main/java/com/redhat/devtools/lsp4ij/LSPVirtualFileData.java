@@ -13,6 +13,7 @@
  *******************************************************************************/
 package com.redhat.devtools.lsp4ij;
 
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.redhat.devtools.lsp4ij.features.diagnostics.LSPDiagnosticsForServer;
 import org.eclipse.lsp4j.Diagnostic;
@@ -38,6 +39,11 @@ public class LSPVirtualFileData {
         this.diagnosticsForServer = new LSPDiagnosticsForServer(languageServer,file);
     }
 
+    public void registerDocumentListeners(Document document) {
+        document.addDocumentListener(synchronizer);
+        document.addDocumentListener(diagnosticsForServer);
+    }
+
     /**
      * Returns the virtual file.
      *
@@ -56,6 +62,6 @@ public class LSPVirtualFileData {
     }
 
     public void updateDiagnostics(List<Diagnostic> diagnostics) {
-        diagnosticsForServer.update(diagnostics);
+        diagnosticsForServer.update(diagnostics, synchronizer.getEditsSinceSave());
     }
 }

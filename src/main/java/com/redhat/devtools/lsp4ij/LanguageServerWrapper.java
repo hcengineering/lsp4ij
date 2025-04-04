@@ -738,8 +738,8 @@ public class LanguageServerWrapper implements Disposable {
                 }
 
                 DocumentContentSynchronizer synchronizer = createDocumentContentSynchronizer(fileUri.toASCIIString(), file, document, fileConnectionInfo.documentText(), fileConnectionInfo.languageId());
-                document.addDocumentListener(synchronizer);
                 LSPVirtualFileData data = new LSPVirtualFileData(new LanguageServerItem(languageServer, this), file, synchronizer);
+                data.registerDocumentListeners(document);
                 LanguageServerWrapper.this.connectedDocuments.put(fileUri, data);
 
                 if (waitForDidOpen) {
@@ -813,6 +813,7 @@ public class LanguageServerWrapper implements Disposable {
             // Remove the listener from the old document stored in synchronizer
             DocumentContentSynchronizer synchronizer = data.getSynchronizer();
             synchronizer.getDocument().removeDocumentListener(synchronizer);
+            synchronizer.getDocument().removeDocumentListener(data.getDiagnosticsForServer());
             synchronizer.documentClosed();
         }
         if (stopIfNoOpenedFiles) {
