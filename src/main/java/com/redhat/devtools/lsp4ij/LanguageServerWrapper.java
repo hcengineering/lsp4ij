@@ -85,6 +85,7 @@ public class LanguageServerWrapper implements Disposable {
     private Future<?> launcherFuture;
 
     private int numberOfRestartAttempts;
+    @Nullable
     private CompletableFuture<Void> initializeFuture;
     private LanguageServer languageServer;
     private LanguageClientImpl languageClient;
@@ -955,6 +956,9 @@ public class LanguageServerWrapper implements Disposable {
     }
 
     public void registerCapability(RegistrationParams params) {
+        if (initializeFuture == null) {
+            return;
+        }
         initializeFuture.thenRun(() -> {
             params.getRegistrations().forEach(reg -> {
                 if (LSPNotificationConstants.WORKSPACE_DID_CHANGE_WORKSPACE_FOLDERS.equals(reg.getMethod())) {
