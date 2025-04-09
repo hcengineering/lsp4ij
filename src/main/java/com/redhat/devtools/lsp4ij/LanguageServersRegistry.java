@@ -452,6 +452,7 @@ public class LanguageServersRegistry {
         boolean configurationContentChanged = !Objects.equals(settings.getConfigurationContent(), request.configurationContent());
         boolean initializationOptionsContentChanged = !Objects.equals(settings.getInitializationOptionsContent(), request.initializationOptionsContent());
         boolean clientConfigurationContentChanged = !Objects.equals(settings.getClientConfigurationContent(), request.clientConfigurationContent());
+        boolean templateIdChanged = !Objects.equals(settings.getTemplateId(), request.templateId);
         // Not checking whether client config changed because that shouldn't result in a LanguageServerChangedEvent
 
         settings.setServerName(request.name());
@@ -463,9 +464,11 @@ public class LanguageServersRegistry {
         settings.setInitializationOptionsContent(request.initializationOptionsContent());
         settings.setClientConfigurationContent(request.clientConfigurationContent);
         settings.setMappings(request.mappings());
+        settings.setTemplateId(request.templateId());
 
         if (nameChanged || commandChanged || userEnvironmentVariablesChanged || includeSystemEnvironmentVariablesChanged ||
-                mappingsChanged || configurationContentChanged || initializationOptionsContentChanged || clientConfigurationContentChanged) {
+                mappingsChanged || configurationContentChanged || initializationOptionsContentChanged || clientConfigurationContentChanged ||
+                templateIdChanged) {
             // Notifications
             LanguageServerDefinitionListener.LanguageServerChangedEvent event = new LanguageServerDefinitionListener.LanguageServerChangedEvent(
                     request.project(),
@@ -609,7 +612,8 @@ public class LanguageServersRegistry {
                                                 @Nullable String configurationContent,
                                                 @Nullable String configurationSchemaContent,
                                                 @Nullable String initializationOptionsContent,
-                                                @Nullable String clientConfigurationContent) {
+                                                @Nullable String clientConfigurationContent,
+                                                @Nullable String templateId) {
     }
 
     /**

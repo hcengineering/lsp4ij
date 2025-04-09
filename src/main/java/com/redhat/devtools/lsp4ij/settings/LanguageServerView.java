@@ -277,7 +277,8 @@ public class LanguageServerView implements Disposable {
                                     getConfigurationContent(),
                                     getConfigurationSchemaContent(),
                                     getInitializationOptionsContent(),
-                                    getClientConfigurationContent()),
+                                    getClientConfigurationContent(),
+                                    launch.getTemplateId()),
                             false);
             if (settingsChangedEvent != null) {
                 // Settings has changed, fire the event
