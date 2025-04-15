@@ -13,27 +13,20 @@
  *******************************************************************************/
 package com.redhat.devtools.lsp4ij.features.diagnostics;
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.problems.WolfTheProblemSolver;
-import com.intellij.psi.PsiFile;
-import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.containers.ContainerUtil;
+import com.redhat.devtools.lsp4ij.ClosedDocument;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
-import com.redhat.devtools.lsp4ij.LSPVirtualFileData;
 import com.redhat.devtools.lsp4ij.LanguageServerWrapper;
-import com.redhat.devtools.lsp4ij.client.CoalesceByKey;
+import com.redhat.devtools.lsp4ij.OpenedDocument;
 import com.redhat.devtools.lsp4ij.client.features.FileUriSupport;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /**
@@ -55,25 +48,10 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
     @Override
     public void accept(PublishDiagnosticsParams params) {
         Project project = languageServerWrapper.getProject();
-        if (project.isDisposed()) {
+        if (project == null || project.isDisposed()) {
             return;
         }
-        if (ApplicationManager.getApplication().isReadAccessAllowed()) {
-            updateDiagnostics(params, project);
-        } else {
-            // Cancel if needed the previous "textDocument/publishDiagnostics" for a given uri.
-            var coalesceBy = new CoalesceByKey("textDocument/publishDiagnostics", params.getUri());
-            var executeInSmartMode = DumbService.getInstance(languageServerWrapper.getProject()).isDumb();
-            var action = ReadAction.nonBlocking((Callable<Void>) () -> {
-                            updateDiagnostics(params, project);
-                            return null;
-                        }).expireWith(languageServerWrapper)
-                        .coalesceBy(coalesceBy);
-            if (executeInSmartMode) {
-                action.inSmartMode(project);
-            }
-            action.submit(AppExecutorUtil.getAppExecutorService());
-        }
+        updateDiagnostics(params, project);
         listener.publishDiagnostics(params);
     }
 
@@ -85,22 +63,19 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
         if (file == null) {
             return;
         }
-        final PsiFile psiFile = LSPIJUtils.getPsiFile(file, project);
-        if (psiFile == null) {
-            return;
-        }
 
         // Update LSP diagnostic reported by the language server id
         URI fileURI = LSPIJUtils.toUri(file);
-        LSPVirtualFileData data = languageServerWrapper.getLSPVirtualFileData(fileURI);
-        if (data != null) {
-            synchronized (data) {
-                data.updateDiagnostics(params.getDiagnostics());
+        OpenedDocument openedDocument = languageServerWrapper.getOpenedDocument(fileURI);
+        if (openedDocument != null) {
+            // Update diagnostics for opened file
+            synchronized (openedDocument) {
+                openedDocument.updateDiagnostics(params.getDiagnostics());
             }
-            // Trigger Intellij validation to execute
-            // {@link LSPDiagnosticAnnotator}.
-            // which translates LSP Diagnostics into Intellij Annotation
-            DaemonCodeAnalyzer.getInstance(project).restart(psiFile);
+        } else {
+            // Update diagnostics for closed file
+            ClosedDocument closedDocument = languageServerWrapper.getClosedDocument(fileURI, true);
+            closedDocument.updateDiagnostics(params.getDiagnostics());
         }
         WolfTheProblemSolver wolf = WolfTheProblemSolver.getInstance(project);
         if (ContainerUtil.exists(params.getDiagnostics(), diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)) {
@@ -109,4 +84,5 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
           wolf.clearProblemsFromExternalSource(file, languageServerWrapper);
         }
     }
+
 }

@@ -22,7 +22,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.Key;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
-import com.redhat.devtools.lsp4ij.LSPVirtualFileData;
+import com.redhat.devtools.lsp4ij.OpenedDocument;
 import com.redhat.devtools.lsp4ij.LanguageServersRegistry;
 import com.redhat.devtools.lsp4ij.LanguageServiceAccessor;
 import com.redhat.devtools.lsp4ij.features.AbstractLSPExternalAnnotator;
@@ -52,6 +52,17 @@ public class LSPDiagnosticAnnotator extends AbstractLSPExternalAnnotator<Boolean
         if (!LanguageServersRegistry.getInstance().isFileSupported(file)) {
             return Boolean.FALSE;
         }
+        // Loop for language server which report diagnostics for the given file
+        // and mark all opened documents as 'displaying diagnostics'
+        URI fileUri = LSPIJUtils.toUri(file);
+        var servers = LanguageServiceAccessor.getInstance(file.getProject())
+                .getStartedServers();
+        for (var ls : servers) {
+            OpenedDocument openedDocument = ls.getOpenedDocument(fileUri);
+            if (openedDocument != null) {
+                openedDocument.markAsDisplayingDiagnostics();
+            }
+        }
         return Boolean.TRUE;
     }
 
@@ -70,17 +81,16 @@ public class LSPDiagnosticAnnotator extends AbstractLSPExternalAnnotator<Boolean
         if (document == null) {
             return;
         }
-
         // Loop for language server which report diagnostics for the given file
         var servers = LanguageServiceAccessor.getInstance(file.getProject())
                 .getStartedServers();
         for (var ls : servers) {
-            LSPVirtualFileData data = ls.getLSPVirtualFileData(fileUri);
-            if (data != null) {
+            OpenedDocument openedDocument = ls.getOpenedDocument(fileUri);
+            if (openedDocument != null) {
                 // The file is mapped with the current language server
-                var ds = data.getDiagnosticsForServer();
+                var ds = openedDocument.getDiagnosticsForServer();
                 // Loop for LSP diagnostics to transform it to Intellij annotation.
-                for (Diagnostic diagnostic : ds.getDiagnostics()) {
+                for (Diagnostic diagnostic : openedDocument.getDiagnostics()) {
                     ProgressManager.checkCanceled();
                     createAnnotation(diagnostic, document, file, ds, holder);
                 }

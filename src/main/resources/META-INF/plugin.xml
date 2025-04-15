@@ -5,6 +5,17 @@
     <vendor email="developers@redhat.com" url="https://github.com/redhat-developer/lsp4ij/issues">Red-Hat</vendor>
 
     <change-notes><![CDATA[
+    <h3>0.12.0</h3>
+    <ul>
+      <li>Support for textDocument/diagnostic (Pull diagnostic)</li>
+      <li>Support for 'Inspect Code...' to show diagnostics from opened/closed files</li>
+      <li>Support for breadcrumbs/sticky lines based on LSP DocumentSymbol</li>
+      <li>Resolve CodeLens only for visible view port</li>
+      <li>Performance improvements for LSP inlay hints, code lenses and semantic tokens</li>
+      <li>Fixing bugs</li>
+    </ul>
+    Learn more in the <a href="https://github.com/redhat-developer/lsp4ij/milestone/13?closed=1">changelog</a>.
+
     <h3>0.11.0</h3>
     <ul>
       <li>Performance improvements for LSP inlay hints</li>
@@ -277,6 +288,12 @@
                 id="LSPDiagnosticAnnotator"
                 language=""
                 implementationClass="com.redhat.devtools.lsp4ij.features.diagnostics.LSPDiagnosticAnnotator"/>
+        <localInspection id="LSPLocalInspectionTool"
+                         language=""
+                         enabledByDefault="true"
+                         groupName="Language Servers"
+                         displayName="Diagnostics"
+                         implementationClass="com.redhat.devtools.lsp4ij.inspections.LSPLocalInspectionTool"/>
 
         <!-- LSP textDocument/completion request support -->
         <typedHandler id="LSPCompletionTriggerTypedHandler"
@@ -318,6 +335,9 @@
                 id="LSPBreadcrumbsProvider"
                 implementation="com.redhat.devtools.lsp4ij.features.documentSymbol.LSPBreadcrumbsProvider"
                 order="last"/>
+        <postStartupActivity
+                id="LSPBreadcrumbsRefreshListener"
+                implementation="com.redhat.devtools.lsp4ij.features.documentSymbol.LSPBreadcrumbsRefreshListener"/>
 
         <!-- LSP textDocument/documentHighlight request support -->
         <highlightUsagesHandlerFactory
@@ -786,8 +806,7 @@
                 file="colorSchemes/SemanticTokensLight.xml"/>
     </extensions>
 
-    <!-- Launch configuration Language servers -->
-
+    <!-- Actions for Language Servers view -->
     <actions resource-bundle="messages.LanguageServerBundle">
         <action
                 id="lsp.console.explorer.restart"
@@ -805,6 +824,15 @@
                 id="lsp.console.explorer.copy.command"
                 class="com.redhat.devtools.lsp4ij.console.explorer.actions.CopyStartServerCommandAction"
                 icon="AllIcons.Actions.Copy"/>
+    </actions>
+
+    <!-- Actions for Semantic Tokens Inspector view -->
+    <actions>
+        <action id="ActivateSemanticTokensInspectorToolWindow"
+                class="com.redhat.devtools.lsp4ij.features.semanticTokens.inspector.ActivateSemanticTokensInspectorToolWindowAction"
+                icon="AllIcons.General.InspectionsEye">
+            <add-to-group group-id="ActivateToolWindowActions"/>
+        </action>
     </actions>
 
     <!-- LSP link handlers -->

@@ -11,7 +11,6 @@
 package com.redhat.devtools.lsp4ij.client;
 
 import com.google.gson.JsonObject;
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -150,8 +149,8 @@ public class LanguageClientImpl implements LanguageClient, Disposable {
     }
 
     private void refreshCodeLensForAllOpenedFiles() {
-        for (var fileData : wrapper.getConnectedFiles()) {
-            VirtualFile file = fileData.getFile();
+        for (var openedDocument : wrapper.getOpenedDocuments()) {
+            VirtualFile file = openedDocument.getFile();
             EditorFeatureManager.getInstance(getProject())
                     .refreshEditorFeature(file, EditorFeatureType.CODE_VISION, true);
         }
@@ -168,8 +167,8 @@ public class LanguageClientImpl implements LanguageClient, Disposable {
     }
 
     private void refreshInlayHintsForAllOpenedFiles() {
-        for (var fileData : wrapper.getConnectedFiles()) {
-            VirtualFile file = fileData.getFile();
+        for (var openedDocument : wrapper.getOpenedDocuments()) {
+            VirtualFile file = openedDocument.getFile();
             EditorFeatureManager efm = EditorFeatureManager.getInstance(getProject());
             efm.refreshEditorFeature(file, EditorFeatureType.INLAY_HINT, true);
             efm.refreshEditorFeature(file, EditorFeatureType.DECLARATIVE_INLAY_HINT, true);
@@ -189,19 +188,37 @@ public class LanguageClientImpl implements LanguageClient, Disposable {
     private void refreshSemanticTokensForAllOpenedFiles() {
         // Received request 'workspace/semanticTokens/refresh
         ReadAction.nonBlocking((Callable<Void>) () -> {
-                    for (var fileData : wrapper.getConnectedFiles()) {
-                        VirtualFile file = fileData.getFile();
+                    for (var openedDocument : wrapper.getOpenedDocuments()) {
+                        VirtualFile file = openedDocument.getFile();
                         PsiFile psiFile = LSPIJUtils.getPsiFile(file, project);
                         if (psiFile != null) {
+                            var fileSupport = LSPFileSupport.getSupport(psiFile);
                             // Evict the semantic tokens cache
-                            LSPFileSupport.getSupport(psiFile).getSemanticTokensSupport().cancel();
+                            fileSupport.getSemanticTokensSupport().cancel();
                             // Refresh the UI
-                            DaemonCodeAnalyzer.getInstance(psiFile.getProject()).restart(psiFile);
+                            fileSupport.restartDaemonCodeAnalyzerWithDebounce();
                         }
                     }
                     return null;
                 }).coalesceBy(this)
                 .submit(AppExecutorUtil.getAppExecutorService());
+    }
+
+    @Override
+    public CompletableFuture<Void> refreshDiagnostics() {
+        return CompletableFuture.runAsync(() -> {
+            if (wrapper == null) {
+                return;
+            }
+            refreshDiagnosticsForAllOpenedFiles();
+        });
+    }
+
+    private void refreshDiagnosticsForAllOpenedFiles() {
+        // Received request 'workspace/diagnostic/refresh
+        for (var openedDocument : wrapper.getOpenedDocuments()) {
+            openedDocument.getSynchronizer().refreshPullDiagnostic(DocumentContentSynchronizer.RefreshPullDiagnosticOrigin.ON_WORKSPACE_REFRESH);
+        }
     }
 
     @Override

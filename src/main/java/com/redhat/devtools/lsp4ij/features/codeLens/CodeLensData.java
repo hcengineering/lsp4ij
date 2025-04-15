@@ -13,7 +13,6 @@ package com.redhat.devtools.lsp4ij.features.codeLens;
 import com.redhat.devtools.lsp4ij.LanguageServerItem;
 import org.eclipse.lsp4j.CodeLens;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 

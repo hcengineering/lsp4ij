@@ -11,6 +11,7 @@
 package com.redhat.devtools.lsp4ij.client.features;
 
 import com.intellij.codeInsight.intention.IntentionAction;
+import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationBuilder;
 import com.intellij.lang.annotation.AnnotationHolder;
@@ -18,11 +19,13 @@ import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.lsp4ij.features.diagnostics.SeverityMapping;
 import com.redhat.devtools.lsp4ij.hint.LSPNavigationLinkHandler;
 import com.redhat.devtools.lsp4ij.internal.StringUtils;
+import com.redhat.devtools.lsp4ij.server.capabilities.DiagnosticCapabilityRegistry;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.ApiStatus;
@@ -31,6 +34,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
+
+import static com.redhat.devtools.lsp4ij.inspections.LSPLocalInspectionTool.ID;
 
 /**
  * LSP diagnostic feature.
@@ -58,6 +63,8 @@ import java.util.List;
 @ApiStatus.Experimental
 public class LSPDiagnosticFeature extends AbstractLSPDocumentFeature {
 
+    private DiagnosticCapabilityRegistry diagnosticCapabilityRegistry;
+    
     @Override
     public boolean isSupported(@NotNull PsiFile file) {
         return true;
@@ -65,10 +72,11 @@ public class LSPDiagnosticFeature extends AbstractLSPDocumentFeature {
 
     /**
      * Create an IntelliJ annotation in the given holder by using given LSP diagnostic and fixes.
+     *
      * @param diagnostic the LSP diagnostic.
-     * @param document the document.
-     * @param fixes the fixes coming from LSP CodeAction.
-     * @param holder the annotation holder where annotation must be registered.
+     * @param document   the document.
+     * @param fixes      the fixes coming from LSP CodeAction.
+     * @param holder     the annotation holder where annotation must be registered.
      */
     public void createAnnotation(@NotNull Diagnostic diagnostic,
                                  @NotNull Document document,
@@ -132,6 +140,20 @@ public class LSPDiagnosticFeature extends AbstractLSPDocumentFeature {
     @Nullable
     public HighlightSeverity getHighlightSeverity(@NotNull Diagnostic diagnostic) {
         return SeverityMapping.toHighlightSeverity(diagnostic.getSeverity());
+    }
+
+    /**
+     * Returns the IntelliJ {@link ProblemHighlightType} from the given diagnostic and null otherwise.
+     *
+     * <p>
+     * If null is returned, the diagnostic will be ignored.
+     * </p>
+     *
+     * @param diagnostic the LSP diagnostic.
+     * @return the IntelliJ {@link ProblemHighlightType} from the given diagnostic and null otherwise.
+     */
+    public ProblemHighlightType getProblemHighlightType(Diagnostic diagnostic) {
+        return SeverityMapping.toProblemHighlightType(diagnostic.getSeverity());
     }
 
     /**
@@ -250,9 +272,71 @@ public class LSPDiagnosticFeature extends AbstractLSPDocumentFeature {
         return null;
     }
 
+    /**
+     * Returns true if the local inspection tool is application for the given file and false otherwise.
+     *
+     * @param file       the file which must be inspected.
+     * @param inspection the local inspection tool.
+     * @return true if the local inspection tool is application for the given file and false otherwise.
+     */
+    public boolean isInspectionApplicableFor(@NotNull PsiFile file,
+                                             @NotNull LocalInspectionTool inspection) {
+        return ID.equals(inspection.getID());
+    }
+
+    /**
+     * Returns true if the local inspection tool is application for the given diagnostic and false otherwise.
+     *
+     * @param diagnostic the diagnostic which could be cover by the local inspection tool.
+     * @param inspection the local inspection tool.
+     * @return true if the local inspection tool is application for the given diagnostic and false otherwise.
+     */
+    public boolean isInspectionApplicableFor(@NotNull Diagnostic diagnostic,
+                                             @NotNull LocalInspectionTool inspection) {
+        return true;
+    }
+
+    /**
+     * Returns true if the file associated with a language server can support pull diagnostic and false otherwise.
+     *
+     * @param file the file.
+     * @return true if the file associated with a language server can support pull diagnostic and false otherwise.
+     */
+    public boolean isDiagnosticSupported(@NotNull PsiFile file) {
+        return getDiagnosticCapabilityRegistry().isDiagnosticSupported(file);
+    }
+
+    /**
+     * Returns true if the file associated with a language server can support pull diagnostic and false otherwise.
+     *
+     * @param file the file.
+     * @return true if the file associated with a language server can support pull diagnostic and false otherwise.
+     */
+    public boolean isDiagnosticSupported(@NotNull VirtualFile file) {
+        return getDiagnosticCapabilityRegistry().isDiagnosticSupported(file);
+    }
+
+    public DiagnosticCapabilityRegistry getDiagnosticCapabilityRegistry() {
+        if (diagnosticCapabilityRegistry == null) {
+            initDiagnosticCapabilityRegistry();
+        }
+        return diagnosticCapabilityRegistry;
+    }
+
+    private synchronized void initDiagnosticCapabilityRegistry() {
+        if (diagnosticCapabilityRegistry != null) {
+            return;
+        }
+        var clientFeatures = getClientFeatures();
+        diagnosticCapabilityRegistry = new DiagnosticCapabilityRegistry(clientFeatures);
+        diagnosticCapabilityRegistry.setServerCapabilities(clientFeatures.getServerWrapper().getServerCapabilitiesSync());
+    }
+
     @Override
     public void setServerCapabilities(@Nullable ServerCapabilities serverCapabilities) {
-        // Do nothing
+        if (diagnosticCapabilityRegistry != null) {
+            diagnosticCapabilityRegistry.setServerCapabilities(serverCapabilities);
+        }
     }
 
     public List<String> getDiskSources() {

@@ -453,7 +453,6 @@ public class LanguageServersRegistry {
         boolean initializationOptionsContentChanged = !Objects.equals(settings.getInitializationOptionsContent(), request.initializationOptionsContent());
         boolean clientConfigurationContentChanged = !Objects.equals(settings.getClientConfigurationContent(), request.clientConfigurationContent());
         boolean templateIdChanged = !Objects.equals(settings.getTemplateId(), request.templateId);
-        // Not checking whether client config changed because that shouldn't result in a LanguageServerChangedEvent
 
         settings.setServerName(request.name());
         settings.setCommandLine(request.commandLine());
@@ -462,7 +461,7 @@ public class LanguageServersRegistry {
         settings.setConfigurationContent(request.configurationContent());
         settings.setConfigurationSchemaContent(request.configurationSchemaContent());
         settings.setInitializationOptionsContent(request.initializationOptionsContent());
-        settings.setClientConfigurationContent(request.clientConfigurationContent);
+        settings.setClientConfigurationContent(request.clientConfigurationContent());
         settings.setMappings(request.mappings());
         settings.setTemplateId(request.templateId());
 
@@ -514,7 +513,7 @@ public class LanguageServersRegistry {
      * @return true if the language of the file is supported by a language server and false otherwise.
      */
     public boolean isFileSupported(@Nullable PsiFile file) {
-        if (file == null) {
+        if (file == null || file.getVirtualFile() == null) {
             return false;
         }
         Language language = LSPIJUtils.getFileLanguage(file);

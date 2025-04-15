@@ -19,6 +19,7 @@ import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.lsp4ij.DocumentContentSynchronizer;
+import com.redhat.devtools.lsp4ij.LSPDocumentBase;
 import com.redhat.devtools.lsp4ij.LanguageServerItem;
 import com.redhat.devtools.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.lsp4ij.client.features.LSPClientFeatures;
@@ -49,12 +50,13 @@ public class LSPDiagnosticsForServer implements DocumentListener {
 
     private final LanguageServerItem languageServer;
 
-    private final VirtualFile file;
+    private final @Nullable VirtualFile file;
 
     // Map which contains all current diagnostics (as key) and future which load associated quick fixes (as value)
     private Map<Diagnostic, LSPLazyCodeActions> diagnostics;
 
-    public LSPDiagnosticsForServer(LanguageServerItem languageServer, VirtualFile file) {
+    public LSPDiagnosticsForServer(@NotNull LanguageServerItem languageServer,
+                                   @Nullable VirtualFile file) {
         this.languageServer = languageServer;
         this.file = file;
         this.diagnostics = Collections.emptyMap();
@@ -64,16 +66,19 @@ public class LSPDiagnosticsForServer implements DocumentListener {
         return languageServer.getClientFeatures();
     }
     /**
-     * Update the new LSP published diagnosics.
+     * Update the new LSP published diagnostics.
      *
-     * @param diagnostics the new LSP published diagnosics
+     * @param diagnostics the new LSP published diagnostics
      */
-    public void update(List<Diagnostic> diagnostics, List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
+    public boolean update(@NotNull List<Diagnostic> diagnostics, List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
+        Collection<Diagnostic> oldDiagnostic = this.diagnostics != null ? this.diagnostics.keySet() : Collections.emptySet();
+        boolean changed = LSPDocumentBase.isDiagnosticsChanged(oldDiagnostic, diagnostics);
         // initialize diagnostics map
         this.diagnostics = toMap(diagnostics, this.diagnostics, editsSinceSave);
+        return changed;
     }
 
-    private Map<Diagnostic, LSPLazyCodeActions> toMap(List<Diagnostic> diagnostics,
+    private Map<Diagnostic, LSPLazyCodeActions> toMap(@NotNull List<Diagnostic> diagnostics,
                                                       Map<Diagnostic, LSPLazyCodeActions> existingDiagnostics,
                                                       List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
         var diskSources = languageServer.getClientFeatures().getDiagnosticFeature().getDiskSources();
@@ -157,7 +162,7 @@ public class LSPDiagnosticsForServer implements DocumentListener {
      *
      * @return the current diagnostics for the file reported by the language server.
      */
-    public Set<Diagnostic> getDiagnostics() {
+    public Collection<Diagnostic> getDiagnostics() {
         return diagnostics.keySet();
     }
 

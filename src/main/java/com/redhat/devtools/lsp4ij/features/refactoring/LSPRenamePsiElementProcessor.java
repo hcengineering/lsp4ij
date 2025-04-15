@@ -151,20 +151,26 @@ public class LSPRenamePsiElementProcessor extends RenamePsiElementProcessor {
                                             @Nullable FileUriSupport fileUriSupport,
                                             @NotNull Project project) {
         VirtualFile file = FileUriSupport.findFileByUri(uri, fileUriSupport);
-        if (file != null) {
-            Document document = LSPIJUtils.getDocument(file);
-            PsiFile psiFile = LSPIJUtils.getPsiFile(file, project);
-            if (psiFile != null && document != null) {
-                textEdits
-                        .forEach(textEdit -> {
-                            TextRange textRange = LSPIJUtils.toTextRange(textEdit.getRange(), document);
-                            if (textRange != null) {
-                                var elt = new LSPRenamePsiElement(psiFile, textRange, textEdit);
-                                allRenames.put(elt, textEdit.getNewText());
-                            }
-                        });
-            }
+        if (file == null) {
+            return;
         }
+        Document document = LSPIJUtils.getDocument(file);
+        if (document == null) {
+            return;
+        }
+        PsiFile psiFile = LSPIJUtils.getPsiFile(file, project);
+        if (psiFile == null) {
+            return;
+        }
+        textEdits
+                .forEach(textEdit -> {
+                    TextRange textRange = LSPIJUtils.toTextRange(textEdit.getRange(), document);
+                    if (textRange != null) {
+                        var elt = new LSPRenamePsiElement(psiFile, textRange, textEdit);
+                        allRenames.put(elt, textEdit.getNewText());
+                    }
+
+                });
     }
 
     @Override

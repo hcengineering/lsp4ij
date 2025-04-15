@@ -30,6 +30,8 @@ Current state of [Language Features]( https://microsoft.github.io/language-serve
  * ✅ [textDocument/definition](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_definition) (see [implementation details](#go-to-definition))
  * ✅ [textDocument/documentHighlight](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentHighlight) (see [implementation details](#document-highlight))
  * ✅ [textDocument/publishDiagnostics](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_publishDiagnostics) (see [implementation details](#publish-diagnostics))
+ * ✅ [textDocument/diagnostic](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_pullDiagnostics) (see [implementation details](#pull-diagnostics))
+ * ✅ [workspace/diagnostic/refresh](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#diagnostic_refresh) 
  * ✅ [textDocument/documentLink](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentLink) (see [implementation details](#document-link))
  * ❌ [documentLink/resolve](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#documentLink_resolve).
  * ✅ [textDocument/hover](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover) (see [implementation details](#hover))
@@ -132,6 +134,31 @@ This menu action either opens the reference in a popup or navigates to the refer
 ![textDocument/implementation popup](./images/lsp-support/textDocument_references_popup.png)
 
 [textDocument/references](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_references) is used also via [Find Usages](./UserGuide.md#find-usages) to show references.
+
+#### External References
+
+LSP4IJ supports integration of externally-added references to language server-derived symbols when appropriate. External
+references are those that are added client-side by either the same plugin or by other installed plugins, e.g., in a
+polyglot environment where symbols in one language can be referenced in other languages.
+
+When enabled, this ensures that external references are included in **Find Usages** results and during symbol rename
+operations. This feature is _disabled by default_ but can be enabled for a custom language server implementation by
+overriding `LSPReferencesFeature#processExternalReferences(PsiFile)` to return `true`, or for a user-defined language
+server definition, by setting `references.processExternalReferences` to `true` in client configuration, e.g.:
+
+```json
+{
+  "references": {
+    "processExternalReferences": true
+  }
+}
+```
+
+This feature should **only** be enabled if you are **explicitly** aware of plugins that might be contributing 
+client-side external references to a language server's symbols. Note that enabling this feature will result in a
+textual search, albeit indexed, of the search scope for the symbol name for which references have been requested.
+This can result in longer overall references search times in larger projects and/or where the language server is
+supplementary to first-class IDE language support.  
 
 ### Implementation
 
@@ -421,6 +448,14 @@ system to trigger these actions.
 Here is an example with the [Qute language server](https://github.com/redhat-developer/quarkus-ls/tree/master/qute.ls) reporting errors:
 
 ![textDocument/publishDiagnostics](./images/lsp-support/textDocument_publishDiagnostics.png)
+
+### Pull Diagnostics
+
+[textDocument/diagnostic](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_pullDiagnostics) 
+is consumed after a [textDocument/didOpen](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didOpen) and [textDocument/didChange](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_didChange)
+with debounce and refresh the LSP diagnostics  `externalAnnotator`.
+
+It doesn't support the related documents.
 
 ### Code Action
 
