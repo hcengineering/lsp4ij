@@ -316,6 +316,10 @@ public class LSPDiagnosticFeature extends AbstractLSPDocumentFeature {
         return getDiagnosticCapabilityRegistry().isDiagnosticSupported(file);
     }
 
+    public boolean isDiagnosticEnabled() {
+        return true;
+    }
+
     public DiagnosticCapabilityRegistry getDiagnosticCapabilityRegistry() {
         if (diagnosticCapabilityRegistry == null) {
             initDiagnosticCapabilityRegistry();

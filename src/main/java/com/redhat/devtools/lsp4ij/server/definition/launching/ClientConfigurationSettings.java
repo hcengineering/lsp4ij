@@ -195,6 +195,7 @@ public class ClientConfigurationSettings {
      */
     public static class ClientConfigurationDiagnosticsSettings {
         public List<String> diskSources = Collections.emptyList();
+        public boolean disablePullDiagnostics = false;
     }
 
     /**

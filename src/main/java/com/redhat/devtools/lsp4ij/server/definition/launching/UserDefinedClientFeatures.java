@@ -16,6 +16,7 @@ package com.redhat.devtools.lsp4ij.server.definition.launching;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.lsp4ij.client.features.LSPClientFeatures;
 import com.redhat.devtools.lsp4ij.server.definition.ClientConfigurableLanguageServerDefinition;
+import org.eclipse.lsp4j.InitializeParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,5 +74,12 @@ public class UserDefinedClientFeatures extends LSPClientFeatures {
         ClientConfigurableLanguageServerDefinition serverDefinition = (ClientConfigurableLanguageServerDefinition) getServerDefinition();
         ClientConfigurationSettings clientConfiguration = serverDefinition.getLanguageServerClientConfiguration();
         return (clientConfiguration != null) ? clientConfiguration.statementTerminatorCharacters : super.getStatementTerminatorCharacters(file);
+    }
+
+    @Override
+    public void initializeParams(@NotNull InitializeParams initializeParams) {
+        if (!getDiagnosticFeature().isDiagnosticEnabled()) {
+            initializeParams.getCapabilities().getTextDocument().setDiagnostic(null);
+        }
     }
 }
