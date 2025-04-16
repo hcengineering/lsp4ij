@@ -74,10 +74,13 @@ public abstract class LSPHierarchyTreeStructureBase<T> extends HierarchyTreeStru
     }
 
     @Nullable
-    protected PsiElement createPsiElement(@NotNull String uri,
+    protected PsiElement createPsiElement(@Nullable String uri,
                                           @Nullable Range range,
                                           @NotNull String name,
                                           @Nullable FileUriSupport fileUriSupport) {
+        if (uri == null) {
+            return null;
+        }
         VirtualFile file = FileUriSupport.findFileByUri(uri, fileUriSupport);
         if (file == null) {
             return null;

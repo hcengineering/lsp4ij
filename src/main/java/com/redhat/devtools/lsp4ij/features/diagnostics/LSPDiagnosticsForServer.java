@@ -53,7 +53,7 @@ public class LSPDiagnosticsForServer implements DocumentListener {
     private final @Nullable VirtualFile file;
 
     // Map which contains all current diagnostics (as key) and future which load associated quick fixes (as value)
-    private Map<Diagnostic, LSPLazyCodeActions> diagnostics;
+    private @NotNull Map<Diagnostic, LSPLazyCodeActions> diagnostics;
 
     public LSPDiagnosticsForServer(@NotNull LanguageServerItem languageServer,
                                    @Nullable VirtualFile file) {
@@ -70,17 +70,17 @@ public class LSPDiagnosticsForServer implements DocumentListener {
      *
      * @param diagnostics the new LSP published diagnostics
      */
-    public boolean update(@NotNull List<Diagnostic> diagnostics, List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
-        Collection<Diagnostic> oldDiagnostic = this.diagnostics != null ? this.diagnostics.keySet() : Collections.emptySet();
+    public boolean update(@NotNull List<Diagnostic> diagnostics, @NotNull List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
+        Collection<Diagnostic> oldDiagnostic = this.diagnostics.keySet();
         boolean changed = LSPDocumentBase.isDiagnosticsChanged(oldDiagnostic, diagnostics);
         // initialize diagnostics map
         this.diagnostics = toMap(diagnostics, this.diagnostics, editsSinceSave);
         return changed;
     }
 
-    private Map<Diagnostic, LSPLazyCodeActions> toMap(@NotNull List<Diagnostic> diagnostics,
-                                                      Map<Diagnostic, LSPLazyCodeActions> existingDiagnostics,
-                                                      List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
+    private @NotNull Map<Diagnostic, LSPLazyCodeActions> toMap(@NotNull List<Diagnostic> diagnostics,
+                                                               Map<Diagnostic, LSPLazyCodeActions> existingDiagnostics,
+                                                               @NotNull List<DocumentContentSynchronizer.RangeEdit> editsSinceSave) {
         var diskSources = languageServer.getClientFeatures().getDiagnosticFeature().getDiskSources();
         for (var diagnostic : diagnostics) {
             var source = diagnostic.getSource();
@@ -129,6 +129,7 @@ public class LSPDiagnosticsForServer implements DocumentListener {
                 diagnosticsGroupByCoveredRange.add(data);
             }
         }
+
         // Associate each diagnostic with the list of code actions to load for a given range
         for (DiagnosticData data : diagnosticsGroupByCoveredRange) {
             var action = new LSPLazyCodeActions(data.diagnostics(), file, languageServer);

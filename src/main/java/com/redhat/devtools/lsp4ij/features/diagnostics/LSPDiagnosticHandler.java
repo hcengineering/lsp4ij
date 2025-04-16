@@ -75,6 +75,7 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
         } else {
             // Update diagnostics for closed file
             ClosedDocument closedDocument = languageServerWrapper.getClosedDocument(fileURI, true);
+            assert closedDocument != null;
             closedDocument.updateDiagnostics(params.getDiagnostics());
         }
         WolfTheProblemSolver wolf = WolfTheProblemSolver.getInstance(project);
