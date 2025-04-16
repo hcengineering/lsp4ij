@@ -217,6 +217,28 @@
           "default": false
         }
       }
+    },
+    "diagnostics": {
+      "type": "object",
+      "title": "Client-side diagnostics configuration",
+      "additionalProperties": false,
+      "properties": {
+        "diskSources": {
+          "type": "array",
+          "title": "Disk sources",
+          "description": "List of diagnostic sources that should use corrected ranges between saves.",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "disablePullDiagnostics": {
+          "type": "boolean",
+          "title": "Disable pull diagnostics",
+          "description": "Whether or not to disable pulling diagnostics from the language server.",
+          "default": false
+        }
+      }
     }
   }
 }
