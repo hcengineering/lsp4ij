@@ -323,6 +323,9 @@ public class DocumentContentSynchronizer implements DocumentListener, Disposable
                 // The document has changed, do nothing
                 return;
             }
+            if (didOpenFuture == null) {
+                return;
+            }
             var ls = didOpenFuture.getNow(null);
             if (ls == null) {
                 // The didOpen is not finished, ignore the pull diagnostic
@@ -369,7 +372,9 @@ public class DocumentContentSynchronizer implements DocumentListener, Disposable
                         var items = fullDocumentDiagnosticReport.getItems();
                         // Update the diagnostics cache from the opened file
                         var openedDocument = languageServerWrapper.getOpenedDocument(LSPIJUtils.toUri(file));
-                        openedDocument.updateDiagnostics(items != null ? items : Collections.emptyList());
+                        if (openedDocument != null) {
+                            openedDocument.updateDiagnostics(items != null ? items : Collections.emptyList());
+                        }
                     } else if (diagnosticReport.isRight()) {
                         // TODO ...
                         RelatedUnchangedDocumentDiagnosticReport relatedUnchangedDocumentDiagnosticReport = diagnosticReport.getRight();
