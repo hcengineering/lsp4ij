@@ -761,6 +761,7 @@ public class LanguageServerWrapper implements Disposable {
                 DocumentContentSynchronizer synchronizer = createDocumentContentSynchronizer(fileUri.toASCIIString(), file, document, fileConnectionInfo.documentText(), fileConnectionInfo.languageId());
                 document.addDocumentListener(synchronizer);
                 OpenedDocument data = new OpenedDocument(new LanguageServerItem(languageServer, this), file, synchronizer);
+                document.addDocumentListener(data.getDiagnosticsForServer());
                 LanguageServerWrapper.this.openedDocuments.put(fileUri, data);
 
                 if (waitForDidOpen) {
@@ -834,6 +835,7 @@ public class LanguageServerWrapper implements Disposable {
             // Remove the listener from the old document stored in synchronizer
             DocumentContentSynchronizer synchronizer = data.getSynchronizer();
             synchronizer.getDocument().removeDocumentListener(synchronizer);
+            synchronizer.getDocument().removeDocumentListener(data.getDiagnosticsForServer());
             synchronizer.dispose();
         }
         if (stopIfNoOpenedFiles) {
